@@ -14,21 +14,33 @@ float **sci_fmatrix(int nx, int ny);
 
 float ***sci_ftensor(int nx, int ny, int nz);
 
+double ***sci_ftensorD(int nx, int ny, int nz);
+
 float *tensorTo1DArray(float ***tensor3D, int nx, int ny, int nz);
 
 float *matrixTo1DArray(float **matrix2D, int nx, int ny);
 
 float *metalArrInit(int nx, int ny, int nz);
 
+float *metalArrInit(int nEll, double a_ell, double b_ell);
+
 float *emmArrInit(int nx, int ny, int nz);
 
+float *emmArrInit(int nEll, double a_ell, double b_ell);
+
 float *tempArrInit(int nx, int ny, int nz);
+
+float *tempArrInit(int nEll, double a_ell, double b_ell);
 
 float *energyArrInit(int rebinSize);
 
 float *tempGridInit(int tGridSize, double *tempAxis);
 
 float *metalGridInit(int mGridSize, double *metalAxis);
+
+float *rotMatInit(double theta, double phi, double epsilon);
+
+float *ellArrInit(int nEll, double a_ell, double b_ell);
 
 float ***makeIntegralMatrix(float *integral_h, int nPixX, int nPixY, int binCenterSize);
 

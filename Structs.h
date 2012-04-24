@@ -10,21 +10,26 @@
 #define cudaProj_Structs_h
 
 struct constants {
-	float depth; // in Mpc
-	int nPixX;
-    int nPixY;
-	float pixToMpc;
-	long binCenterSize;
-	float accuracy;
-	int nGrid;
-	int nx;
-	int ny;
-	int nz;
-	int eGridSize;
+    int eGridSize;
 	int tGridSize;
 	int mGridSize;
     double *tempAxis;
     double *metalAxis;
+    float depth; // in Mpc
+	int nPixX;
+    int nPixY;
+	float pixToMpc;
+	long binCenterSize;
+    double theta;
+    double phi;
+    double epsilon;
+    double a_ell;
+    double b_ell;
+    int n_ell;
+	float accuracy;
+	int nx;
+	int ny;
+	int nz;
 	
 };
 

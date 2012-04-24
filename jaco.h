@@ -328,6 +328,15 @@ struct jaco_state {
     unsigned long nx,ny;         // Simulated image dimensions
     float pixscale;              // Pixel scale of simulated image
     
+    // Triaxial mode parameters
+    int n_ell;
+    double *Tprof,*Zprof,*nenhprof;
+    double a_ell,b_ell;
+    int ***corners;
+    int n_box_spectra;
+    double theta;
+    double phi;
+    double epsilon;
     
     // Nongravity mode parameters
     

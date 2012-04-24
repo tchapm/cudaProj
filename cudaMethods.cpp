@@ -33,9 +33,20 @@ __device__ float linearInterpZ(float* interpMat, int x, int y, float z, constant
 	z2 = z1+1;
 	ten1 = __powf(10,tenRetrieveD(interpMat, nx, ny, nz, x, y, z1));
 	ten2 = __powf(10,tenRetrieveD(interpMat, nx, ny, nz, x, y, z2));
-	interpValue = ten1 + (ten2 -ten1)*(z - z1);
+	interpValue = ten1 + (ten2 - ten1)*(z - z1);
 	return interpValue;
 	
+}
+
+__device__ float linearInterpEll(float* interpMat, float ell, constants theConst){
+	int ell1, ell2;
+	float ten1, ten2, interpValue;
+	ell1 = (int)ell;
+	ell2 = ell1+1;
+	ten1 = __powf(10,interpMat[ell1]);
+	ten2 = __powf(10,interpMat[ell2]);
+	interpValue = ten1 + (ten2 - ten1)*(ell - ell1);
+	return interpValue;	
 }
 
 __device__ int getLowerIndex(float* axisArr, float value, int arrLength){
@@ -79,11 +90,90 @@ __device__ float bilinInterpVal(float* interpMat, float y, float z, int energyBi
 	return interpValue;
 }
 
+__device__ float getEll(int x, int y, int z, float* rotMat, double a, double b){
+    float xPrime, yPrime, zPrime;
+    xPrime = rotMat[0]*x + rotMat[1]*y + rotMat[2]*z;
+    yPrime = rotMat[3]*x + rotMat[4]*y + rotMat[5]*z;
+    zPrime = rotMat[6]*x + rotMat[7]*y + rotMat[8]*z;
+    return __powf(xPrime*xPrime + yPrime*yPrime/(a*a) + zPrime*zPrime/(b*b),0.5);
+}
 
-__global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* integral, float* tempGrid, float* metalGrid, constants theConst, bool debugging){
+
+__global__ void integrate2(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* integral, float* tempGrid, float* metalGrid, float* rotMat, constants theConst, bool debugging){
 	//integrate from depth/2 to -depth/2
 	
-//    printf("!!!!!!!!!!!!!!!!!!!test!!!!!!!!!!!!!!!!!");
+    int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel/energy-bin
+    int j= blockIdx.x;   
+	int x, y;
+	x = j/theConst.nPixX;
+	y = j%theConst.nPixY;
+	int energyBin = threadIdx.x;
+	int a, b, n, step=1;
+	float tFunct, h, actErr, last, nextVal;
+	float T, Z, rebinA, rebinB;
+	float prevStep[200];
+    float ell;
+	//b = theConst.depth/2 + theConst.nz/2;
+	//a = theConst.nz/2 - theConst.depth/2;
+	b = theConst.depth + theConst.nz/2-1;
+	a = theConst.nz/2-1;
+	h = b-a;
+	actErr = 1.0;
+	last = 1.E30;
+	nextVal = 0.0;
+	n = 1;
+    
+    ell = getEll(x, y, a, rotMat, theConst.a_ell, theConst.b_ell);
+    T = linearInterpEll(tempArr, ell, theConst);
+	Z = linearInterpEll(metalArr, ell, theConst);
+	rebinA = bilinInterpVal(rebinCool, T, Z, energyBin, tempGrid, metalGrid, theConst);
+	tFunct = 0.5*__powf(linearInterpEll(emmArr, ell, theConst), 2.0)*rebinA;
+    ell = getEll(x, y, b, rotMat, theConst.a_ell, theConst.b_ell);
+	T = linearInterpEll(tempArr, ell, theConst);
+	Z = linearInterpEll(metalArr, ell, theConst);
+	rebinB = bilinInterpVal(rebinCool, T, Z, energyBin, tempGrid, metalGrid, theConst);
+	tFunct += 0.5*__powf(linearInterpEll(emmArr, ell, theConst), 2.0)*rebinB;
+    //iterate until convergence of integral
+    prevStep[0] = tFunct;
+	while (actErr>=0.1) {
+		step=step*2;
+		h = float(b-a)/step;
+		nextVal = 0.0;
+		for (int l=1; l<step; l=l+2) {
+            ell = getEll(x, y, l*h+a, rotMat, theConst.a_ell, theConst.b_ell);
+			T = linearInterpEll(tempArr, ell, theConst);
+            Z = linearInterpEll(metalArr, ell, theConst);
+			nextVal+=bilinInterpVal(rebinCool, T, Z, energyBin, tempGrid, metalGrid, theConst)*__powf(linearInterpEll(emmArr, ell, theConst), 2.0);
+		}
+		nextVal+=prevStep[n-1];
+		prevStep[n]=nextVal;
+		nextVal=h*(nextVal);
+		actErr=fabs(last-nextVal);
+		last=nextVal;
+		n++;
+	}
+    
+    if (debugging) {
+        integral[0]=T;
+        integral[1]=energyBin;
+        integral[2]=ell;
+        integral[3]=Z;
+        integral[4]=linearInterpEll(tempArr, ell, theConst);
+        integral[5]=tFunct;
+        integral[6]=linearInterpEll(emmArr, ell, theConst);
+        integral[7] = rebinA;
+        integral[8] = n;
+        integral[9] = last;
+        integral[10] = prevStep[1];
+    }else {
+        ////place integrations into the 1D array by thread number
+        integral[i] = last;
+    }	 
+}
+
+__global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* integral, float* tempGrid, float* metalGrid, float* rotMat, constants theConst, bool debugging){
+	//integrate from depth/2 to -depth/2
+	
     int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel/energy-bin
     int j= blockIdx.x;   
 	int x, y;
@@ -147,6 +237,7 @@ __global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, flo
         integral[i] = last;
     }	 
 }
+
 
 __global__ void tempInit(void(*f)(float), float * temperature, constants theConst){
 	/*int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel or energy-bin	

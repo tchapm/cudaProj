@@ -25,11 +25,6 @@
 
 using namespace std;
 
-float *inVec_h;
-float *inVec_d=NULL;
-float **inMat_h;
-float **inMat_d;
-float ***inTen_h;
 float *metalArr_h;
 float *metalArr_d;
 float *emmArr_h;
@@ -46,6 +41,8 @@ float *metalGrid_h;
 float *metalGrid_d;
 float *tempGrid_h;
 float *tempGrid_d;
+float *rotMat_h;
+float *rotMat_d;
 
 
 void Cleanup(void)
@@ -61,6 +58,12 @@ void Cleanup(void)
 		cudaFree(rebinArr_d);
 	}if (integral_d) {
 		cudaFree(integral_d);
+	}if (metalGrid_d) {
+		cudaFree(metalGrid_d);
+	}if (tempGrid_d) {
+		cudaFree(tempGrid_d);
+	}if (rotMat_d) {
+		cudaFree(rotMat_d);
 	}
 	
 	// Free host memory
@@ -76,6 +79,12 @@ void Cleanup(void)
 		free(rebinArr_h);
 	}if (integral_h) {
 		free(integral_h);
+	}if (metalGrid_h) {
+		free(metalGrid_h);
+	}if (tempGrid_h) {
+		free(tempGrid_h);
+	}if (rotMat_h) {
+		free(rotMat_h);
 	}
 	
     cutilSafeCall( cudaThreadExit() );	
@@ -175,11 +184,18 @@ void constInit(constants &theConst, jaco_state ja){
     theConst.nPixY = ja.ny;//128;
 	theConst.pixToMpc = 1/(ja.angdist*ja.pixscale);//0.01;
 	theConst.binCenterSize = ja.nlastbin;//256;
+    theConst.theta = ja.theta;
+    theConst.phi = ja.phi;
+    theConst.epsilon = ja.epsilon;
+    theConst.a_ell = ja.a_ell;
+    theConst.b_ell = ja.b_ell;
+    theConst.n_ell = ja.n_ell;
 	theConst.accuracy=0.0001;
     //	theConst.nGrid=1;
-	theConst.nx=256;
-	theConst.ny=256;
-	theConst.nz=256;	
+//	theConst.nx=256;
+//	theConst.ny=256;
+//	theConst.nz=256;	
+    
 }
 
 
@@ -204,7 +220,7 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
 //    theConst.tempAxis = coolingFile.tempAxis;
 //    theConst.metalAxis = coolingFile.metalAxis;
     
-	size_t sizeT = theConst.nx*theConst.ny*theConst.nz*sizeof(float);
+	size_t sizeT = theConst.n_ell*sizeof(float);
 	size_t sizeEn = theConst.binCenterSize*sizeof(float);
 	size_t sizeInt = theConst.nPixX*theConst.nPixY*theConst.binCenterSize*sizeof(float);
     
@@ -222,9 +238,9 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
 	printf("Loading input data tensors\n");
     sLoadTime = clock();
 	rebinArr_h = tensorTo1DArray(ja.rebinnedcooling, theConst.binCenterSize, theConst.tGridSize, theConst.mGridSize);
-    metalArr_h = metalArrInit(theConst.nx, theConst.ny, theConst.nz);
-	tempArr_h = tempArrInit(theConst.nx, theConst.ny, theConst.nz);
-	emmArr_h = emmArrInit(theConst.nx, theConst.ny, theConst.nz);
+    metalArr_h = metalArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
+	tempArr_h = tempArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
+	emmArr_h = emmArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
 	energyArr_h = energyArrInit(theConst.binCenterSize);
 	integral_h = new float[theConst.nPixX*theConst.nPixY*theConst.binCenterSize];
 	
@@ -235,7 +251,8 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     metalGrid_h = metalGridInit(theConst.mGridSize, theConst.metalAxis);
     //    printf("tempGrid[%d] = %f\n", theConst.tGridSize-1, tempGrid_h[theConst.tGridSize-1]);
     //    printf("metalGrid[%d] = %f\n", theConst.mGridSize-1, metalGrid_h[theConst.mGridSize -1]);
-    
+    rotMat_h = (float*) calloc(9,sizeof(float));
+    rotMat_h = rotMatInit(theConst.theta, theConst.phi, theConst.epsilon);
     size_t sizeRebin = theConst.tGridSize*theConst.mGridSize*theConst.binCenterSize*sizeof(float);
     eLoadTime = clock();
     
@@ -256,6 +273,8 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     cudaMemcpy(tempGrid_d, tempGrid_h, sizeTGrid, cudaMemcpyHostToDevice);
     cudaMalloc((void**)&metalGrid_d, sizeMGrid);
 	cudaMemcpy(metalGrid_d, metalGrid_h, sizeMGrid, cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&rotMat_d, 9*sizeof(float));
+	cudaMemcpy(rotMat_d, rotMat_h,  9*sizeof(float), cudaMemcpyHostToDevice);
     eGPUTime = clock();
     
     ///////////////test to see if cuda node is functioning
@@ -281,7 +300,7 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     sIntTime = clock();
     float * combinedRegion;
     if (cudaWorking) {
-        integrate<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, theConst, debugging);
+        integrate2<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, rotMat_d,theConst, debugging);
         printf("Transferring integration results back to CPU\n \n");
         cudaMemcpy(integral_h, integral_d, sizeInt, cudaMemcpyDeviceToHost);
         eIntTime = clock();
@@ -331,17 +350,17 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     ////////////testing new functions
     bool testing = false;
     if(testing){
-        for (int i=0; i<5; i++) {
-            printf("TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
-            tempArr_h[i*theConst.ny*theConst.nz + i*theConst.nz + i] = 0.0;
-            printf("0000--TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
-            
-        }
-        tempInit<<<theConst.nx*theConst.ny, theConst.nz>>>(function2, tempArr_d, theConst);
-        cudaMemcpy(tempArr_h, tempArr_d, sizeT, cudaMemcpyDeviceToHost);
-        for (int i=0; i<5; i++) {
-            printf("TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
-        }
+//        for (int i=0; i<5; i++) {
+//            printf("TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
+//            tempArr_h[i*theConst.ny*theConst.nz + i*theConst.nz + i] = 0.0;
+//            printf("0000--TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
+//            
+//        }
+//        tempInit<<<theConst.nx*theConst.ny, theConst.nz>>>(function2, tempArr_d, theConst);
+//        cudaMemcpy(tempArr_h, tempArr_d, sizeT, cudaMemcpyDeviceToHost);
+//        for (int i=0; i<5; i++) {
+//            printf("TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
+//        }
         bool blocking = false;
         
         //test for blocking
@@ -366,24 +385,31 @@ int main(){
     ja.pixscale = 10;
     ja.nx = 128;
     ja.ny = 128;
-
+    ja.theta = 0;
+    ja.phi = 0;
+    ja.epsilon = 0;
+    ja.a_ell = 1.0;
+    ja.b_ell = 1.0;
+    ja.n_ell = 256*256*256;
+    
 	file_reader coolingFile;
 	double centBin[ja.nlastbin];
 	strcpy(coolingFile.spectralCode, "/home/tchap/mekal.bin");
 	coolingFile.debug = 2;
 	read_cooling_function(coolingFile);
     makeReBin(centBin, ja.nlastbin);
-	rebincoolingfunction(centBin, ja.nlastbin, coolingFile);    
+	rebincoolingfunction(centBin, ja.nlastbin, coolingFile);  
+    //double float issue
     ja.rebinnedcooling = coolingFile.rebinnedCooling; 
     ja.tgridsize = coolingFile.tGridSize;
     ja.mgridsize = coolingFile.mGridSize;
     ja.egridsize = coolingFile.eGridSize;
     ja.tempaxis = coolingFile.tempAxis;
     ja.metalaxis = coolingFile.metalAxis;
-
-    printf("test1");
+//    ja.Tprof = tempArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
+//    ja.Zprof = metalArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
+//    ja.nenhprof = emmArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
     float *results = runSimulation(ja, 2,4,3,5);
-    printf("test2");
     for (int i=0; i<ja.nlastbin; i++) {
         printf("bin[%d] = %f  ",i, results[i]);
     }
