@@ -13,8 +13,8 @@ struct constants {
     int eGridSize;
 	int tGridSize;
 	int mGridSize;
-    double *tempAxis;
-    double *metalAxis;
+    double* tempAxis;
+    double* metalAxis;
     float depth; // in Mpc
 	int nPixX;
     int nPixY;
@@ -27,6 +27,10 @@ struct constants {
     double b_ell;
     int n_ell;
     double rMax;
+    float*** rebinnedCooling;
+    float* metalArr;
+    float* tempArr;
+    float* emmArr;
 	float accuracy;
 	int nx;
 	int ny;

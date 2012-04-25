@@ -191,6 +191,10 @@ void constInit(constants &theConst, jaco_state ja){
     theConst.b_ell = ja.b_ell;
     theConst.n_ell = ja.n_ell;
     theConst.rMax = ja.rshock;
+    theConst.rebinnedCooling = ja.rebinnedcooling;
+    theConst.metalArr=ja.Zprof;
+    theConst.tempArr=ja.Tprof;
+    theConst.emmArr=ja.nenhprof;
 	theConst.accuracy=0.0001;
     //	theConst.nGrid=1;
 //	theConst.nx=256;
@@ -238,10 +242,10 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     /////////////make host data structures
 	printf("Loading input data tensors\n");
     sLoadTime = clock();
-	rebinArr_h = tensorTo1DArray(ja.rebinnedcooling, theConst.binCenterSize, theConst.tGridSize, theConst.mGridSize);
-    metalArr_h = metalArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell, theConst.rMax);
-	tempArr_h = tempArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell, theConst.rMax);
-	emmArr_h = emmArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell, theConst.rMax);
+	rebinArr_h = tensorTo1DArray(theConst.rebinnedCooling, theConst.binCenterSize, theConst.tGridSize, theConst.mGridSize);
+    metalArr_h = theConst.metalArr;
+	tempArr_h = theConst.tempArr;
+	emmArr_h = theConst.emmArr;
 	energyArr_h = energyArrInit(theConst.binCenterSize);
 	integral_h = new float[theConst.nPixX*theConst.nPixY*theConst.binCenterSize];
 	
@@ -407,9 +411,9 @@ int main(){
     ja.egridsize = coolingFile.eGridSize;
     ja.tempaxis = coolingFile.tempAxis;
     ja.metalaxis = coolingFile.metalAxis;
-//    ja.Tprof = tempArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
-//    ja.Zprof = metalArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
-//    ja.nenhprof = emmArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
+    ja.Tprof = tempArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
+    ja.Zprof = metalArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
+    ja.nenhprof = emmArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
     float *results = runSimulation(ja, 2,4,3,5);
     for (int i=0; i<ja.nlastbin; i++) {
         printf("bin[%d] = %f  ",i, results[i]);
