@@ -10,8 +10,8 @@ struct file_reader{
 	int tGridSize;
 	int mGridSize;
 	float *** masterCooling;
-	float *** rebinnedCooling; //possibly should be double
-	float * rebinArr;
+	double *** rebinnedCooling; //possibly should be double
+	double * rebinArr;
 //	vector<double> energyAxis;
 //	vector<double> tempAxis;
 //	vector<double> metalAxis;
@@ -285,7 +285,7 @@ int rebincoolingfunction(double *binCenter, int nBin, struct file_reader& js)
 	if (haschanged) {
 		// Generate a new coolingfunction matrix
 		js.l1 = 0; js.l2 = nBin-1;
-		js.rebinnedCooling = sci_ftensor(nBin,js.tGridSize,js.mGridSize);
+		js.rebinnedCooling = sci_ftensorD(nBin,js.tGridSize,js.mGridSize);
         js.lastbin = new double[nBin];
 //		js.lastbin.reserve(nBin*sizeof(double));
 		printf("Rebinning cooling function: %d bins requested.\n",nBin);

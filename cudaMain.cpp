@@ -25,24 +25,24 @@
 
 using namespace std;
 
-float *metalArr_h;
-float *metalArr_d;
-float *emmArr_h;
-float *emmArr_d;
-float *tempArr_h;
-float *tempArr_d;
-float *energyArr_h;
-//float *energyArr_d;
-float *rebinArr_h;
-float *rebinArr_d;
-float *integral_h;
-float *integral_d;
-float *metalGrid_h;
-float *metalGrid_d;
-float *tempGrid_h;
-float *tempGrid_d;
-float *rotMat_h;
-float *rotMat_d;
+double *metalArr_h;
+double *metalArr_d;
+double *emmArr_h;
+double *emmArr_d;
+double *tempArr_h;
+double *tempArr_d;
+double *energyArr_h;
+//double *energyArr_d;
+double *rebinArr_h;
+double *rebinArr_d;
+double *integral_h;
+double *integral_d;
+double *metalGrid_h;
+double *metalGrid_d;
+double *tempGrid_h;
+double *tempGrid_d;
+double *rotMat_h;
+double *rotMat_d;
 
 
 void Cleanup(void)
@@ -160,9 +160,9 @@ void Cleanup(void)
 
 
 
-float* sumArea(int x1, int x2, int y1, int y2, float*** completeArr, constants theConst){
-    float* combinedRegion;
-    combinedRegion = (float*) calloc(theConst.binCenterSize, sizeof(float));
+double* sumArea(int x1, int x2, int y1, int y2, double*** completeArr, constants theConst){
+    double* combinedRegion;
+    combinedRegion = (double*) calloc(theConst.binCenterSize, sizeof(double));
     for (int k=0; k<theConst.binCenterSize; k++) {
         for (int i=x1; i<=x2; i++) {
             for (int j=y1; j<=y2; j++) {
@@ -204,7 +204,7 @@ void constInit(constants &theConst, jaco_state ja){
 }
 
 
-float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
+double *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     ////////////set constants and sizes of data structures
     clock_t sTime, eTime, sLoadTime, eLoadTime, sGPUTime, eGPUTime, sCoolTime, eCoolTime, sIntTime, eIntTime;
     /////////////start clock
@@ -225,14 +225,14 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
 //    theConst.tempAxis = coolingFile.tempAxis;
 //    theConst.metalAxis = coolingFile.metalAxis;
     
-	size_t sizeT = theConst.n_ell*sizeof(float);
-	size_t sizeEn = theConst.binCenterSize*sizeof(float);
-	size_t sizeInt = theConst.nPixX*theConst.nPixY*theConst.binCenterSize*sizeof(float);
+	size_t sizeT = theConst.n_ell*sizeof(double);
+	size_t sizeEn = theConst.binCenterSize*sizeof(double);
+	size_t sizeInt = theConst.nPixX*theConst.nPixY*theConst.binCenterSize*sizeof(double);
     
 	///////////cooling function variables
 
-    size_t sizeTGrid = theConst.tGridSize*sizeof(float);
-    size_t sizeMGrid = theConst.mGridSize*sizeof(float);
+    size_t sizeTGrid = theConst.tGridSize*sizeof(double);
+    size_t sizeMGrid = theConst.mGridSize*sizeof(double);
 	
 	/////////////create rebin and put into vectors to transfer to device	
     sCoolTime = clock();
@@ -247,18 +247,18 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
 	tempArr_h = theConst.tempArr;
 	emmArr_h = theConst.emmArr;
 	energyArr_h = energyArrInit(theConst.binCenterSize);
-	integral_h = new float[theConst.nPixX*theConst.nPixY*theConst.binCenterSize];
+	integral_h = new double[theConst.nPixX*theConst.nPixY*theConst.binCenterSize];
 	
 	////////////create temperature and metallicity grids for interpolation within the device
-	tempGrid_h = (float*) calloc(theConst.tGridSize, sizeof(float));
+	tempGrid_h = (double*) calloc(theConst.tGridSize, sizeof(double));
     tempGrid_h = tempGridInit(theConst.tGridSize, theConst.tempAxis);
-	metalGrid_h = (float*) calloc(theConst.mGridSize, sizeof(float));
+	metalGrid_h = (double*) calloc(theConst.mGridSize, sizeof(double));
     metalGrid_h = metalGridInit(theConst.mGridSize, theConst.metalAxis);
     //    printf("tempGrid[%d] = %f\n", theConst.tGridSize-1, tempGrid_h[theConst.tGridSize-1]);
     //    printf("metalGrid[%d] = %f\n", theConst.mGridSize-1, metalGrid_h[theConst.mGridSize -1]);
-    rotMat_h = (float*) calloc(9,sizeof(float));
+    rotMat_h = (double*) calloc(9,sizeof(double));
     rotMat_h = rotMatInit(theConst.theta, theConst.phi, theConst.epsilon);
-    size_t sizeRebin = theConst.tGridSize*theConst.mGridSize*theConst.binCenterSize*sizeof(float);
+    size_t sizeRebin = theConst.tGridSize*theConst.mGridSize*theConst.binCenterSize*sizeof(double);
     eLoadTime = clock();
     
     //create space for device tensors and transfer data from host to device tensors
@@ -278,16 +278,16 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     cudaMemcpy(tempGrid_d, tempGrid_h, sizeTGrid, cudaMemcpyHostToDevice);
     cudaMalloc((void**)&metalGrid_d, sizeMGrid);
 	cudaMemcpy(metalGrid_d, metalGrid_h, sizeMGrid, cudaMemcpyHostToDevice);
-    cudaMalloc((void**)&rotMat_d, 9*sizeof(float));
-	cudaMemcpy(rotMat_d, rotMat_h,  9*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&rotMat_d, 9*sizeof(double));
+	cudaMemcpy(rotMat_d, rotMat_h,  9*sizeof(double), cudaMemcpyHostToDevice);
     eGPUTime = clock();
     
     ///////////////test to see if cuda node is functioning
-    float *testArr_h = new float[10];
+    double *testArr_h = new double[10];
     testArr_h[0] = 0.0;
-    float *testArr_d;
+    double *testArr_d;
     bool cudaWorking = false;
-    size_t testSize = 10*sizeof(float);
+    size_t testSize = 10*sizeof(double);
     cudaMalloc((void**)&testArr_d, testSize);
 	cudaMemcpy(testArr_d, testArr_h, testSize, cudaMemcpyHostToDevice);
     cudFunctionTest<<<1,10>>>(testArr_d);
@@ -303,7 +303,7 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     //////////////call the integration
     printf("Running integration\n");
     sIntTime = clock();
-    float * combinedRegion;
+    double * combinedRegion;
     if (cudaWorking) {
         integrate2<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, rotMat_d,theConst, debugging);
         printf("Transferring integration results back to CPU\n \n");
@@ -311,7 +311,7 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
         eIntTime = clock();
         
         //convert integral_h back to a tensor
-        float *** integralMatrix = makeIntegralMatrix(integral_h, theConst.nPixX, theConst.nPixY, theConst.binCenterSize); 
+        double *** integralMatrix = makeIntegralMatrix(integral_h, theConst.nPixX, theConst.nPixY, theConst.binCenterSize); 
         bool displayRegion = true;
         ///////////////////display the spectra at different combined locations
         if(displayRegion){
@@ -414,7 +414,7 @@ int main(){
     ja.Tprof = tempArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
     ja.Zprof = metalArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
     ja.nenhprof = emmArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
-    float *results = runSimulation(ja, 2,4,3,5);
+    double *results = runSimulation(ja, 2,4,3,5);
     for (int i=0; i<ja.nlastbin; i++) {
         printf("bin[%d] = %f  ",i, results[i]);
     }

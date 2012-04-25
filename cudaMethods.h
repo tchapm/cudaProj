@@ -9,23 +9,30 @@
 #ifndef cudaProj_cudaMethods_h
 #define cudaProj_cudaMethods_h
 
-__global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* integral, float* tempGrid, float* metalGrid, constants theConst, bool debugging);
+__global__ void cudFunctionTest(double *testArr_d);
 
-__global__ void cudFunctionTest(float *testArr_d);
+__device__ void modifyTensor(double* oneDArray, int index);
 
-__device__ void modifyTensor(float* oneDArray, int index);
+__device__ double tenRetrieveD(double* oneDArray, int nx, int ny, int nz, int x, int y, int z);
 
-__device__ float tenRetrieveD(float* oneDArray, int nx, int ny, int nz, int x, int y, int z);
+__device__ double linearInterpZ(double* interpMat, int x, int y, double z, constants theConst);
 
-__device__ float linearInterpZ(float* interpMat, int x, int y, float z, constants theConst);
+__device__ double linearInterpEll(double* interpMat, double ell, constants theConst);
 
-__device__ int getLowerIndex(float* axisArr, float value, int arrLength);
+__device__ int getLowerIndex(double* axisArr, double value, int arrLength);
 
-__device__ float bilinInterpVal(float* interpMat, float y, float z, int energyBin, float* tempGrid, float* metalGrid, constants theConst);
+__device__ double bilinInterpVal(double* interpMat, double y, double z, int energyBin, double* tempGrid, double* metalGrid, constants theConst);
 
-__global__ void tempInit(void(*f)(float), float * temperature, constants theConst);
 
-__device__ float function (float rNot, float l) ;
+__device__ double getEll(int x, int y, int z, double* rotMat, double a, double b);
 
-__device__ void function2 (float x);
+__global__ void integrate2(double* rebinCool, double* tempArr, double* metalArr, double* emmArr, double* integral, double* tempGrid, double* metalGrid, double* rotMat, constants theConst, bool debugging);
+
+__global__ void integrate(double* rebinCool, double* tempArr, double* metalArr, double* emmArr, double* integral, double* tempGrid, double* metalGrid, constants theConst, bool debugging);
+
+__global__ void tempInit(void(*f)(double), double * temperature, constants theConst);
+
+__device__ double function (double rNot, double l) ;
+
+__device__ void function2 (double x);
 #endif

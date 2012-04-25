@@ -27,10 +27,10 @@ struct constants {
     double b_ell;
     int n_ell;
     double rMax;
-    float*** rebinnedCooling;
-    float* metalArr;
-    float* tempArr;
-    float* emmArr;
+    double*** rebinnedCooling;
+    double* metalArr;
+    double* tempArr;
+    double* emmArr;
 	float accuracy;
 	int nx;
 	int ny;

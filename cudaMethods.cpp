@@ -8,27 +8,27 @@
 #include "cudaMethods.cuh"
 #include <iostream>
 
-__global__ void cudFunctionTest(float *testArr_d){
+__global__ void cudFunctionTest(double *testArr_d){
 //    printf("test");
     int i=blockDim.x * blockIdx.x + threadIdx.x;
     testArr_d[i] = 1.0;
 }
 
-__device__ void modifyTensor(float* oneDArray, int index){
+__device__ void modifyTensor(double* oneDArray, int index){
 	oneDArray[index] = 100.0;
 }
 
-__device__ float tenRetrieveD(float* oneDArray, int nx, int ny, int nz, int x, int y, int z){
+__device__ double tenRetrieveD(double* oneDArray, int nx, int ny, int nz, int x, int y, int z){
 	int index = x*ny*nz + y*nz + z;
 	return oneDArray[index];
 }
 
-__device__ float linearInterpZ(float* interpMat, int x, int y, float z, constants theConst){
+__device__ double linearInterpZ(double* interpMat, int x, int y, double z, constants theConst){
 	int z1, z2;
 	int nx = theConst.nx;
 	int ny = theConst.ny;
 	int nz = theConst.nz;
-	float ten1, ten2, interpValue;
+	double ten1, ten2, interpValue;
 	z1 = (int)z;
 	z2 = z1+1;
 	ten1 = __powf(10,tenRetrieveD(interpMat, nx, ny, nz, x, y, z1));
@@ -38,9 +38,9 @@ __device__ float linearInterpZ(float* interpMat, int x, int y, float z, constant
 	
 }
 
-__device__ float linearInterpEll(float* interpMat, float ell, constants theConst){
+__device__ double linearInterpEll(double* interpMat, double ell, constants theConst){
 	int ell1, ell2;
-	float ten1, ten2, interpValue;
+	double ten1, ten2, interpValue;
 	ell1 = (int)ell;
 	ell2 = ell1+1;
 	ten1 = __powf(10,interpMat[ell1]);
@@ -49,7 +49,7 @@ __device__ float linearInterpEll(float* interpMat, float ell, constants theConst
 	return interpValue;	
 }
 
-__device__ int getLowerIndex(float* axisArr, float value, int arrLength){
+__device__ int getLowerIndex(double* axisArr, double value, int arrLength){
 	for(int i=0; i<arrLength; i++){
 		if (value<axisArr[i]) {
 			return i-1;
@@ -58,11 +58,11 @@ __device__ int getLowerIndex(float* axisArr, float value, int arrLength){
 	return arrLength-2;
 }
 
-__device__ float bilinInterpVal(float* interpMat, float y, float z, int energyBin, float* tempGrid, float* metalGrid, constants theConst){
+__device__ double bilinInterpVal(double* interpMat, double y, double z, int energyBin, double* tempGrid, double* metalGrid, constants theConst){
 	int y1, y2, z1, z2;
-	float temp1, temp2, R1, R2, interpValue; 
-	float ten11, ten12, ten21, ten22;
-	float y1val, y2val, z1val, z2val;
+	double temp1, temp2, R1, R2, interpValue; 
+	double ten11, ten12, ten21, ten22;
+	double y1val, y2val, z1val, z2val;
 	int nx = theConst.binCenterSize; //designed to interpolate the rebinned cooling function
 	int ny = theConst.tGridSize;
 	int nz = theConst.mGridSize;
@@ -90,8 +90,8 @@ __device__ float bilinInterpVal(float* interpMat, float y, float z, int energyBi
 	return interpValue;
 }
 
-__device__ float getEll(int x, int y, int z, float* rotMat, double a, double b){
-    float xPrime, yPrime, zPrime;
+__device__ double getEll(int x, int y, int z, double* rotMat, double a, double b){
+    double xPrime, yPrime, zPrime;
     xPrime = rotMat[0]*x + rotMat[1]*y + rotMat[2]*z;
     yPrime = rotMat[3]*x + rotMat[4]*y + rotMat[5]*z;
     zPrime = rotMat[6]*x + rotMat[7]*y + rotMat[8]*z;
@@ -99,7 +99,7 @@ __device__ float getEll(int x, int y, int z, float* rotMat, double a, double b){
 }
 
 
-__global__ void integrate2(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* integral, float* tempGrid, float* metalGrid, float* rotMat, constants theConst, bool debugging){
+__global__ void integrate2(double* rebinCool, double* tempArr, double* metalArr, double* emmArr, double* integral, double* tempGrid, double* metalGrid, double* rotMat, constants theConst, bool debugging){
 	//integrate from depth/2 to -depth/2
 	
     int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel/energy-bin
@@ -109,10 +109,10 @@ __global__ void integrate2(float* rebinCool, float* tempArr, float* metalArr, fl
 	y = j%theConst.nPixY;
 	int energyBin = threadIdx.x;
 	int a, b, n, step=1;
-	float tFunct, h, actErr, last, nextVal;
-	float T, Z, rebinA, rebinB;
-	float prevStep[200];
-    float ell;
+	double tFunct, h, actErr, last, nextVal;
+	double T, Z, rebinA, rebinB;
+	double prevStep[200];
+    double ell;
 	//b = theConst.depth/2 + theConst.nz/2;
 	//a = theConst.nz/2 - theConst.depth/2;
 	b = theConst.depth + theConst.nz/2-1;
@@ -137,7 +137,7 @@ __global__ void integrate2(float* rebinCool, float* tempArr, float* metalArr, fl
     prevStep[0] = tFunct;
 	while (actErr>=0.1) {
 		step=step*2;
-		h = float(b-a)/step;
+		h = double(b-a)/step;
 		nextVal = 0.0;
 		for (int l=1; l<step; l=l+2) {
             ell = getEll(x, y, l*h+a, rotMat, theConst.a_ell, theConst.b_ell);
@@ -171,7 +171,7 @@ __global__ void integrate2(float* rebinCool, float* tempArr, float* metalArr, fl
     }	 
 }
 
-__global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* integral, float* tempGrid, float* metalGrid, float* rotMat, constants theConst, bool debugging){
+__global__ void integrate(double* rebinCool, double* tempArr, double* metalArr, double* emmArr, double* integral, double* tempGrid, double* metalGrid, double* rotMat, constants theConst, bool debugging){
 	//integrate from depth/2 to -depth/2
 	
     int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel/energy-bin
@@ -181,9 +181,9 @@ __global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, flo
 	y = j%theConst.nPixY;
 	int energyBin = threadIdx.x;
 	int a, b, n, step=1;
-	float tFunct, h, actErr, last, nextVal;
-	float T, Z, rebinA, rebinB;
-	float prevStep[200];
+	double tFunct, h, actErr, last, nextVal;
+	double T, Z, rebinA, rebinB;
+	double prevStep[200];
 	//b = theConst.depth/2 + theConst.nz/2;
 	//a = theConst.nz/2 - theConst.depth/2;
 	b = theConst.depth + theConst.nz/2-1;
@@ -205,7 +205,7 @@ __global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, flo
     prevStep[0] = tFunct;
 	while (actErr>=0.1) {
 		step=step*2;
-		h = float(b-a)/step;
+		h = double(b-a)/step;
 		nextVal = 0.0;
 		for (int l=1; l<step; l=l+2) {
 			T = linearInterpZ(tempArr, x, y, l*h+a, theConst);
@@ -239,32 +239,32 @@ __global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, flo
 }
 
 
-__global__ void tempInit(void(*f)(float), float * temperature, constants theConst){
+__global__ void tempInit(void(*f)(double), double * temperature, constants theConst){
 	/*int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel or energy-bin	
 	int j= blockIdx.x;   
 	int x, y;
 	x = j/theConst.nx;
 	y = j%theConst.ny;
     int z = threadIdx.x;
-    float l, A, B, C, rNot;
+    double l, A, B, C, rNot;
     A = 1.0;
     B = 1.0;
     C = 1.0;
-    float a, b, actErr, h;
+    double a, b, actErr, h;
     int n, step;
     //    a = 1.0;
     b = 10.0; //need to check conversion .01 pix/Mpc
     //    h=b-a;
     rNot = 0.5; //500 kPc * 0.01 pixel/Mpc
-    float tFunct, nextVal, last;
-    float prevStep[200];
+    double tFunct, nextVal, last;
+    double prevStep[200];
 	
     n=1;
     nextVal=0.0;
     last = 1.E30;
     actErr = 1.0;
     step = 1;
-    l = 1.0;//0.01*__powf(__powf(float(x-(theConst.nx/2-1))/A,2)+__powf(float(y-(theConst.ny/2-1))/B,2)+__powf(float(z-(theConst.nz/2-1))/C,2),0.5);
+    l = 1.0;//0.01*__powf(__powf(double(x-(theConst.nx/2-1))/A,2)+__powf(double(y-(theConst.ny/2-1))/B,2)+__powf(double(z-(theConst.nz/2-1))/C,2),0.5);
     tFunct = l;//0.5*(*f)(rNot,l)
     (*f)(rNot);
     //    tFunct += 0.5*(*f)(rNot,b);
@@ -272,7 +272,7 @@ __global__ void tempInit(void(*f)(float), float * temperature, constants theCons
     //    while (actErr>=0.01) {
     //        step=step*2;
     //        nextVal = 0.0;
-    //        h = float(b-l)/step;		
+    //        h = double(b-l)/step;		
     //        for (int k=1; k<step; k=k+2) {
     //            nextVal += (*f)(rNot,k*h+l);
     //        }
@@ -287,11 +287,11 @@ __global__ void tempInit(void(*f)(float), float * temperature, constants theCons
     */
 }
 
-__device__ float function (float rNot, float l) {
+__device__ double function (double rNot, double l) {
     return 1.0;//__powf(rNot+l,-5.0);
 }
 
-__device__ void function2 (float x) {
+__device__ void function2 (double x) {
     1.0;
 }
 
