@@ -22,15 +22,15 @@ float *matrixTo1DArray(float **matrix2D, int nx, int ny);
 
 float *metalArrInit(int nx, int ny, int nz);
 
-float *metalArrInit(int nEll, double a_ell, double b_ell);
+float *metalArrInit(int nEll, double a_ell, double b_ell, double rMax);
 
 float *emmArrInit(int nx, int ny, int nz);
 
-float *emmArrInit(int nEll, double a_ell, double b_ell);
+float *emmArrInit(int nEll, double a_ell, double b_ell, double rMax);
 
 float *tempArrInit(int nx, int ny, int nz);
 
-float *tempArrInit(int nEll, double a_ell, double b_ell);
+float *tempArrInit(int nEll, double a_ell, double b_ell, double rMax);
 
 float *energyArrInit(int rebinSize);
 
@@ -40,7 +40,7 @@ float *metalGridInit(int mGridSize, double *metalAxis);
 
 float *rotMatInit(double theta, double phi, double epsilon);
 
-float *ellArrInit(int nEll, double a_ell, double b_ell);
+float *ellArrInit(int nEll, double rMax);
 
 float ***makeIntegralMatrix(float *integral_h, int nPixX, int nPixY, int binCenterSize);
 

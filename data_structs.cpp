@@ -252,12 +252,12 @@ float *tempArrInit(int nx, int ny, int nz){
 	return tempArr;
 }
 
-float *tempArrInit(int nEll, double a_ell, double b_ell){
+float *tempArrInit(int nEll, double a_ell, double b_ell, double rMax){
 	float *tempArr = new float[nEll];
     //    float max = 0;
     float rNot = 0.5; //500 kPc * 0.01 pixel/Mpc
     float *ellArr = new float[nEll];
-    ellArr = ellArrInit(nEll, a_ell, b_ell);
+    ellArr = ellArrInit(nEll, rMax);
     for(int k=0; k<nEll; k++){
         tempArr[k]=log10(6.7*powf(rNot+0.01*ellArr[k],-1.0));
     }
@@ -265,43 +265,39 @@ float *tempArrInit(int nEll, double a_ell, double b_ell){
 	return tempArr;
 }
 
-float *emmArrInit(int nEll, double a_ell, double b_ell){
+float *emmArrInit(int nEll, double a_ell, double b_ell, double rMax){
 	float *emmArr = new float[nEll];
     //    float max = 0;
     float rNot = 0.5; //500 kPc * 0.01 pixel/Mpc
     float *ellArr = new float[nEll];
-    ellArr = ellArrInit(nEll, a_ell, b_ell);
+    ellArr = ellArrInit(nEll, rMax);
     for(int k=0; k<nEll; k++){
         emmArr[k] = log10(powf(rNot+0.01*ellArr[k],-3));
     }
 	return emmArr;
 }
 
-float *metalArrInit(int nEll, double a_ell, double b_ell){
+float *metalArrInit(int nEll, double a_ell, double b_ell, double rMax){
 	float *metalArr = new float[nEll];
+    float *ellArr = ellArrInit(nEll, rMax);
     for(int k=0; k<nEll; k++){
         metalArr[k] = log10(1.0);
     }
 	return metalArr;
 }
 
-float *ellArrInit(int nEll, double a_ell, double b_ell){
-	int x,y,z;
-    int nx = 256,ny=256,nz=256;
-    nEll = nx*ny*nz; //need to change to take out nx
+float *ellArrInit(int nEll, double rMax){
+	int x;
+	float eMin = 0.0; //in Kev
+	float eMax = rMax;
+	float binWidth = (eMax-eMin)/nEll;
 	float *ellArr = new float[nEll];
-	for (x=0; x<nx; x++) {
-		for(y=0; y<ny; y++){
-			for (z=0; z<nz; z++) {
-                ellArr[x*ny*nz + y*nz + z] =powf((powf(float(x-(nx/2-1)),2)+powf(float(y-(ny/2-1))/a_ell,2)+powf(float(z-(nz/2-1))/b_ell,2)), 0.5);
-                
-            }
-        }
-//        printf("EllArr[%d][255][255] = %f\n",x, ellArr[x*ny*nz + y*nz + z]);        
-	}
+	ellArr[0] = eMin;
+	for (x=1; x<rMax; x++) {
+		ellArr[x] = ellArr[x-1]+binWidth;
+	}	
 	return ellArr;
 }
-
 float *energyArrInit(int rebinSize){
 	int x;
 	float eMin = 0.2; //in Kev

@@ -26,6 +26,7 @@ struct constants {
     double a_ell;
     double b_ell;
     int n_ell;
+    double rMax;
 	float accuracy;
 	int nx;
 	int ny;

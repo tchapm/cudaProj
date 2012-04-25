@@ -190,6 +190,7 @@ void constInit(constants &theConst, jaco_state ja){
     theConst.a_ell = ja.a_ell;
     theConst.b_ell = ja.b_ell;
     theConst.n_ell = ja.n_ell;
+    theConst.rMax = ja.rshock;
 	theConst.accuracy=0.0001;
     //	theConst.nGrid=1;
 //	theConst.nx=256;
@@ -238,9 +239,9 @@ float *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
 	printf("Loading input data tensors\n");
     sLoadTime = clock();
 	rebinArr_h = tensorTo1DArray(ja.rebinnedcooling, theConst.binCenterSize, theConst.tGridSize, theConst.mGridSize);
-    metalArr_h = metalArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
-	tempArr_h = tempArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
-	emmArr_h = emmArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell);
+    metalArr_h = metalArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell, theConst.rMax);
+	tempArr_h = tempArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell, theConst.rMax);
+	emmArr_h = emmArrInit(theConst.n_ell, theConst.a_ell, theConst.b_ell, theConst.rMax);
 	energyArr_h = energyArrInit(theConst.binCenterSize);
 	integral_h = new float[theConst.nPixX*theConst.nPixY*theConst.binCenterSize];
 	
