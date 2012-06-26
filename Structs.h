@@ -32,9 +32,8 @@ struct constants {
     double* tempArr;
     double* emmArr;
 	float accuracy;
-	int nx;
-	int ny;
 	int nz;
+    double ellMax
 	
 };
 

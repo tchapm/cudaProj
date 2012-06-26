@@ -18,9 +18,9 @@ struct file_reader{
 	int eGridSize;
 	int tGridSize;
 	int mGridSize;
-	float *** masterCooling;
-	float *** rebinnedCooling;
-	float ** tempMetalMat;
+	double *** masterCooling;
+	double *** rebinnedCooling;
+	double ** tempMetalMat;
 	
 	vector<double> energyAxis;
 	vector<double> tempAxis;
@@ -32,7 +32,7 @@ struct file_reader{
      double* metalAxis;
      double* lastbin;
      */
-	float* rebinArr;
+	double* rebinArr;
 	double opz;
 	double eBinSize;
 	long nLastBin;
@@ -40,26 +40,26 @@ struct file_reader{
 	
 };
 struct pixel{
-	float temp;
-	float metal;
-	float emm;
-	float ** tempMat;
-	float ** metalMat;
-	float ** emmMat;
-	float *** tempTens;
-	float *** metalTens;
-	float *** emmTens;
-	//float lamda;
-	float integral;
+	double temp;
+	double metal;
+	double emm;
+	double ** tempMat;
+	double ** metalMat;
+	double ** emmMat;
+	double *** tempTens;
+	double *** metalTens;
+	double *** emmTens;
+	//double lamda;
+	double integral;
 	int E;
 };
 
 struct constants {
-	float depth; // in Mpc
+	double depth; // in Mpc
 	int nPix;
-	float pixToMpc;
+	double pixToMpc;
 	int binCenterSize;
-	float accuracy;
+	double accuracy;
 	int nGrid;
 	int nx;
 	int ny;
@@ -70,9 +70,16 @@ struct constants {
 	
 };
 
-float* metalGrid;
-float* tempGrid;
+double* metalGrid;
+double* tempGrid;
 
+double getEll(int x, int y, int z, double* rotMat, double a, double b){
+    double xPrime, yPrime, zPrime;
+    xPrime = rotMat[0]*x + rotMat[1]*y + rotMat[2]*z;
+    yPrime = rotMat[3]*x + rotMat[4]*y + rotMat[5]*z;
+    zPrime = rotMat[6]*x + rotMat[7]*y + rotMat[8]*z;
+    return powf(xPrime*xPrime + yPrime*yPrime/(a*a) + zPrime*zPrime/(b*b),0.5);
+}
 
 void read_cooling_function(struct file_reader& js)
 {
@@ -110,7 +117,7 @@ void read_cooling_function(struct file_reader& js)
 	 js.masterCooling[i] = new double[js.mGridSize];
 	 }
 	 */
-	js.masterCooling = sci_ftensor(js.tGridSize,js.mGridSize,js.eGridSize);
+	js.masterCooling = sci_ftensorD(js.tGridSize,js.mGridSize,js.eGridSize);
 	
 	//js.energyAxis = (double*) malloc(js.eGridSize);
 	//js.tempAxis = (double*) malloc(js.tGridSize);
@@ -143,7 +150,7 @@ void read_cooling_function(struct file_reader& js)
 	for (k = 0; k < js.tGridSize; k++){
 		for (j = 0; j < js.mGridSize; j++){
 			for (l=0; l< js.eGridSize; l++){
-				read(coolfile,&js.masterCooling[k][j][l],sizeof(float));
+				read(coolfile,&js.masterCooling[k][j][l],sizeof(double));
 			}
 		}
 	}			   
@@ -251,9 +258,9 @@ void printRebin(struct file_reader& js, double *binCenter){
 	}
 	printf("{%f, %f}},{", log10(binCenter[k]), js.rebinnedCooling[k][32][40]);
 	for (k=0; k<255; k++) {
-		printf("{%f, %f},", log10(binCenter[k]), tenRetrieveH(js.rebinArr, 256, js.tGridSize, js.mGridSize, k, 32, 40));
+//		printf("{%f, %f},", log10(binCenter[k]), tenRetrieveH(js.rebinArr, 256, js.tGridSize, js.mGridSize, k, 32, 40));
 	}
-	printf("{%f, %f}}}]", log10(binCenter[k]), tenRetrieveH(js.rebinArr, 256, js.tGridSize, js.mGridSize, k, 32, 40));
+//	printf("{%f, %f}}}]", log10(binCenter[k]), tenRetrieveH(js.rebinArr, 256, js.tGridSize, js.mGridSize, k, 32, 40));
     
 	/*printf("\n\ncooling function = ");
 	 for (k=0; k<10; k++) {
@@ -329,7 +336,7 @@ int rebincoolingfunction(double *binCenter, int nBin, struct file_reader& js)
 	if (haschanged) {
 		// Generate a new coolingfunction matrix
 		js.l1 = 0; js.l2 = nBin-1;
-		js.rebinnedCooling = sci_ftensor(nBin,js.tGridSize,js.mGridSize);
+		js.rebinnedCooling = sci_ftensorD(nBin,js.tGridSize,js.mGridSize);
 		js.lastbin.reserve(nBin*sizeof(double));
 		//js.lastbin = (double*) malloc(nBin*sizeof(double));
 		printf("Rebinning cooling function: %d bins requested.\n",nBin);
@@ -459,7 +466,7 @@ int rebincoolingfunction(double *binCenter, int nBin, struct file_reader& js)
 	}
 	return 1;
 }
-void inputSet(float **inputData, int eBin, int tGridSize, int mGridSize, float ***masterCooling){
+void inputSet(double **inputData, int eBin, int tGridSize, int mGridSize, double ***masterCooling){
 	int i, j;
 	for(i = 0; i < tGridSize; i++) 
 	{
@@ -487,10 +494,10 @@ void inputSet(float **inputData, int eBin, int tGridSize, int mGridSize, float *
 
 void sphereInit(pixel& init){
 	int x, y, z;
-	init.tempTens=sci_ftensor(256, 256, 256);
-	init.metalTens=sci_ftensor(256, 256, 256);
-	init.emmTens=sci_ftensor(256, 256, 256);
-	float r;
+	init.tempTens=sci_ftensorD(256, 256, 256);
+	init.metalTens=sci_ftensorD(256, 256, 256);
+	init.emmTens=sci_ftensorD(256, 256, 256);
+	double r;
     
 	for (x=0; x<256; x++) {
 		for(y=0; y<256; y++){
@@ -506,7 +513,7 @@ void sphereInit(pixel& init){
 	//cout << init.tempMat[0][0][0];
 }
 
-/*float bilinInterp(float* interpMat, float x, float y, constants theConst, int blockId){
+/*double bilinInterp(double* interpMat, double x, double y, constants theConst, int blockId){
  int x1, x2, y1, y2;
  double temp1, temp2, R1, R2, interpValue;
  double ten11, ten12, ten21, ten22;
@@ -540,7 +547,7 @@ void sphereInit(pixel& init){
  return interpValue;
  }*/
 
-int getLowerIndex(float* axisArr, float value, int arrLength){
+int getLowerIndex(double* axisArr, double value, int arrLength){
 	for(int i=0; i<arrLength; i++){
 		if (value<axisArr[i]) {
 			return i-1;
@@ -551,24 +558,24 @@ int getLowerIndex(float* axisArr, float value, int arrLength){
 
 
 /*
- float f(int x, float k){
- float value;
+ double f(int x, double k){
+ double value;
  //value = 2*x;
- value= float(powf(powf(1/(k+powf(x,2)), 3.0)+powf(1/(k+powf(x,2)), 5.0/2.0), 0.5));
+ value= double(powf(powf(1/(k+powf(x,2)), 3.0)+powf(1/(k+powf(x,2)), 5.0/2.0), 0.5));
  functCall++;
  return value;
  }
  */
 
-float tenRetrieveD(float* oneDArray, int nx, int ny, int nz, int x, int y, int z){
+double tenRetrieveD(double* oneDArray, int nx, int ny, int nz, int x, int y, int z){
 	int index = x*ny*nz + y*nz + z;
 	return oneDArray[index];
 }
-float bilinInterpVal(float* interpMat, float y, float z, int energyBin, float* tempGrid, float* metalGrid, constants theConst){
+double bilinInterpVal(double* interpMat, double y, double z, int energyBin, double* tempGrid, double* metalGrid, constants theConst){
 	int y1, y2, z1, z2;
-	float temp1, temp2, R1, R2, interpValue; 
-	float ten11, ten12, ten21, ten22;
-	float y1val, y2val, z1val, z2val;
+	double temp1, temp2, R1, R2, interpValue; 
+	double ten11, ten12, ten21, ten22;
+	double y1val, y2val, z1val, z2val;
 	int nx = theConst.binCenterSize; //designed to interpolate the rebinned cooling function
 	int ny = theConst.tGridSize;
 	int nz = theConst.mGridSize;
@@ -596,7 +603,7 @@ float bilinInterpVal(float* interpMat, float y, float z, int energyBin, float* t
 	return interpValue;
 }
 
-float linearInterpZ(float* interpMat, int x, int y, float z, constants theConst){
+double linearInterpZ(double* interpMat, int x, int y, double z, constants theConst){
 	int z1, z2;
 	int nx = theConst.nx;
 	int ny = theConst.ny;
@@ -611,7 +618,7 @@ float linearInterpZ(float* interpMat, int x, int y, float z, constants theConst)
 	
 }
 
-float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* tempGrid, float* metalGrid, constants theConst, int threadIndex, int blockIndex){
+double integrate(double* rebinCool, double* tempArr, double* metalArr, double* emmArr, double* tempGrid, double* metalGrid, constants theConst, int threadIndex, int blockIndex){
 	//integrate from depth/2 to -depth/2
     //	int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel/energy-bin	
 	int j= blockIndex;   
@@ -620,8 +627,8 @@ float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr
 	y = j%theConst.nx;
 	int energyBin = threadIndex;
 	int a, b, n, step=1;
-	float tFunct, h, actErr, last, nextVal;
-	float T, Z, rebinA, rebinB;
+	double tFunct, h, actErr, last, nextVal;
+	double T, Z, rebinA, rebinB;
 	double prevStep[200];
 	
 	//b = theConst.depth/2 + theConst.nz/2;
@@ -648,7 +655,7 @@ float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr
     
 	while (actErr>=0.1) {
 		step=step*2;
-		h= float(b-a)/step;		
+		h= double(b-a)/step;		
 		for (int l=1; l<step; l=l+2) {
 			T = linearInterpZ(tempArr, x, y, l*h+a, theConst);
 			Z = linearInterpZ(metalArr, x, y, l*h+a, theConst);
@@ -666,15 +673,15 @@ float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr
 	//TODO change to actual indices to make more readable for Andi in future
 	//integral[i] = last;	 
 }
-/*void integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* energyArr, float* integral, constants theConst){
+/*void integrate(double* rebinCool, double* tempArr, double* metalArr, double* emmArr, double* energyArr, double* integral, constants theConst){
  //integrate from depth/2 to -depth/2
  
  //when do i need to call the bilinear interpolation? 
  int x, y, z;
  
  int a, b, n, step=1;
- float tFunct, h, actErr, last, nextVal;
- float T, Z, rebinA, rebinB;
+ double tFunct, h, actErr, last, nextVal;
+ double T, Z, rebinA, rebinB;
  double prevStep[200];
  
  b = theConst.depth/2;
@@ -702,7 +709,7 @@ float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr
  
  while (actErr>theConst.accuracy) {
  step=step*2;
- h= float(b-a)/step;
+ h= double(b-a)/step;
  
  for (int l=1; l<step; l=l+2) {
  T = get3DValFrom1DArray(tempArr, theConst.nx, theConst.ny, theConst.nz, x, y, l*h+a+128);
@@ -717,7 +724,7 @@ float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr
  n++;
  }	
  
- /*float *rebinMatrix = new float[theConst.nx*theConst.ny];
+ /*double *rebinMatrix = new double[theConst.nx*theConst.ny];
  for (int m=0; m<nx; m++) {
  for (int n=0; n<ny; n++) {
  rebinMatrix[m*ny + n] = rebinCool[m*ny*nz + n*nz + i];
@@ -732,15 +739,15 @@ float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr
                  }
                  
                  }*/
-/*void varCalc(pixel* list, struct file_reader& js, int listSize, float err){
- float k;
- float h, tFunct;
- float nextVal, actErr;
+/*void varCalc(pixel* list, struct file_reader& js, int listSize, double err){
+ double k;
+ double h, tFunct;
+ double nextVal, actErr;
  
  int a, b, step=1;
  a=0;
  b=10;
- float last;
+ double last;
  //tFunct=0.5*(f(a,k)+f(b,k));
  double prevStep[200];
  prevStep[0]=tFunct;
@@ -764,7 +771,7 @@ float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr
  while (actErr>=err) { //will break when difference of
  //successive calculations less than err
  step=step*2;
- h= float(b-a)/step;
+ h= double(b-a)/step;
  nextVal=0.0;
  for (int l=1; l<step; l=l+2) {
  nextVal+=f(l*h+a, k);
@@ -779,7 +786,7 @@ float integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr
  }		
  //cout << "n: " << n << endl;
  //cout << "last: " << last << endl;
- list[i].integral= float(last*powf(list[i].E,-0.5));
+ list[i].integral= double(last*powf(list[i].E,-0.5));
  //cout <<  i << endl << list[i].E << endl;
  //cout << list[i].integral << endl;
  prevStep[0]=tFunct;
@@ -807,18 +814,18 @@ int main (int argc, char * const argv[]) {
 	int rebinSize = theConst.binCenterSize;
 	int nx, ny, nz;
 	nx=10; ny=20; nz=30;
-	float ***flatTen = sci_ftensor(nx, ny, nz);
-	float *tenArr = new float[nx*ny*nz];
+	double ***flatTen = sci_ftensorD(nx, ny, nz);
+	double *tenArr = new double[nx*ny*nz];
 	double centBin[rebinSize]; 
 	flatTen[2][10][13] = 5.4;
 	tenArr = tensorTo1DArray(flatTen, nx, ny, nz);
 	tenArr[621] = 2.2;
-	//float *rebinArr;
-	float *metalArr = metalArrInit(nx, ny, nz);
-	float *emmArr = emmArrInit(nx, ny, nz);
-	float *tempArr = tempArrInit(nx, ny, nz);
-	float *energyArr = energyArrInit(theConst.binCenterSize);
-	float *integralArr = new float[theConst.nPix*theConst.binCenterSize];
+	//double *rebinArr;
+	double *metalArr = metalArrInit(nx, ny, nz);
+	double *emmArr = emmArrInit(nx, ny, nz);
+	double *tempArr = tempArrInit(nx, ny, nz);
+	double *energyArr = energyArrInit(theConst.binCenterSize);
+	double *integralArr = new double[theConst.nPix*theConst.binCenterSize];
     //	
     //	printf("metalArr = %f\n", get3DValFrom1DArray(metalArr, 1, 2, 3, nx, ny, nz));
     //	printf("emmArr = %f\n", get3DValFrom1DArray(emmArr, 1, 2, 3, nx, ny, nz));
@@ -838,12 +845,12 @@ int main (int argc, char * const argv[]) {
 	
 	rebincoolingfunction(centBin, theConst.binCenterSize, coolingFile);
 	coolingFile.rebinArr = tensorTo1DArray(coolingFile.rebinnedCooling, theConst.binCenterSize, coolingFile.tGridSize, coolingFile.mGridSize);
-	tempGrid = (float*) calloc(theConst.tGridSize, sizeof(float));
+	tempGrid = (double*) calloc(theConst.tGridSize, sizeof(double));
 	for(int i =0; i<theConst.tGridSize; i++){
 		tempGrid[i] = pow(10,coolingFile.tempAxis[i]);
 		//printf("\ntempGrid[%d] = %f", i, tempGrid[i]);
 	}
-	metalGrid = (float*) calloc(theConst.mGridSize, sizeof(float));
+	metalGrid = (double*) calloc(theConst.mGridSize, sizeof(double));
 	for (int i = 0; i<theConst.mGridSize; i++) {
 		metalGrid[i] = pow(10,coolingFile.metalAxis[i]);
 		//printf("\nmetalGrid[%d] = %f", i, metalGrid[i]);
@@ -862,7 +869,7 @@ int main (int argc, char * const argv[]) {
 	//printf("rebinArr[16382][2.5][0.3] = %f", bilinInterpCool(rebinArr, 2.5, 0.3, theConst, 163));
 	//printf("interpolation[0][0][0]= %f\tactual[0][0][0]= %f", bilinInterp(rebinArr, 0.0, 0.0, 0), h_pixelArr[0].tempMat[0][0][0]);
     
-	//float ** inputData = sci_fmatrix(newFile.tGridSize, newFile.mGridSize);
+	//double ** inputData = sci_fmatrix(newFile.tGridSize, newFile.mGridSize);
 	//inputSet(inputData, k, newFile.tGridSize, newFile.mGridSize, newFile.masterCooling);
 	//cout << "test: " << inputData[0][0];
 	//cout << "\nmasterCool: " << log10(newFile.masterCooling[0][0][1]);
@@ -883,7 +890,7 @@ int main (int argc, char * const argv[]) {
     //theConst.nPix, theConst.binCenterSize
     int threadIndex = 1;
     int blockIndex = 1;
-    float integrateVal = integrate(coolingFile.rebinArr, tempArr, metalArr, emmArr, tempGrid, metalGrid, theConst, threadIndex, blockIndex);
+    double integrateVal = integrate(coolingFile.rebinArr, tempArr, metalArr, emmArr, tempGrid, metalGrid, theConst, threadIndex, blockIndex);
     printf("IntegrationVal = %f\n", integrateVal);
     return 0;
 }

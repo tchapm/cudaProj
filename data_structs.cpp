@@ -47,6 +47,31 @@ float **sci_fmatrix(int nx, int ny)
 	
 	return x;
 }
+double **sci_fmatrixD(int nx, int ny)
+{
+	double **x=NULL;
+	long i;
+	
+	if (nx > 0 && ny > 0) 
+		x = (double **)malloc(nx*sizeof(double *));
+	if (x == NULL){ 
+		printf("Could not allocate float matrix with %d rows",nx);
+		perror("errno");
+		exit(1);
+	}
+	
+	x[0] = (double *)malloc(nx*ny*sizeof(double));
+	if (x[0] == NULL){ 
+		printf("Could not allocate %d%d float matrix",nx,ny);
+		perror("errno");
+		exit(1);
+		
+	}
+	for (i = 1; i < nx; ++i) 
+		x[i] = x[0]+i*ny;
+	
+	return x;
+}
 float ***sci_ftensor(int nx, int ny, int nz)
 {
 	float ***x=NULL;
@@ -195,9 +220,9 @@ double *metalArrInit(int nx, int ny, int nz){
 	return metalArr;
 }
 
-double *metalArrInit(int nEll, double a_ell, double b_ell, double rMax){
+double *metalArrInit(int nEll, double a_ell, double b_ell, double ellMax){
 	double *metalArr = new double[nEll];
-    double *ellArr = ellArrInit(nEll, rMax);
+    double *ellArr = ellArrInit(nEll, ellMax);
     for(int k=0; k<nEll; k++){
         metalArr[k] = log10(1.0);
     }
@@ -228,12 +253,12 @@ double *emmArrInit(int nx, int ny, int nz){
 	return emmArr;
 }
 
-double *emmArrInit(int nEll, double a_ell, double b_ell, double rMax){
+double *emmArrInit(int nEll, double a_ell, double b_ell, double ellMax){
 	double *emmArr = new double[nEll];
     //    double max = 0;
     double rNot = 0.5; //500 kPc * 0.01 pixel/Mpc
     double *ellArr = new double[nEll];
-    ellArr = ellArrInit(nEll, rMax);
+    ellArr = ellArrInit(nEll, ellMax);
     for(int k=0; k<nEll; k++){
         emmArr[k] = log10(pow(rNot+0.01*ellArr[k],-3));
     }
@@ -274,20 +299,20 @@ double *tempArrInit(int nx, int ny, int nz){
 	return tempArr;
 }
 
-double *tempArrInit(int nEll, double a_ell, double b_ell, double rMax){
+double* tempArrInit(int nEll, double a_ell, double b_ell, double ellMax){
 	double *tempArr = new double[nEll];
     //    double max = 0;
     double rNot = 0.5; //500 kPc * 0.01 pixel/Mpc
     double *ellArr = new double[nEll];
-    ellArr = ellArrInit(nEll, rMax);
+    ellArr = ellArrInit(nEll, ellMax);
     for(int k=0; k<nEll; k++){
         tempArr[k]=log10(6.7*pow(rNot+0.01*ellArr[k],-1.0));
     }
-
+    
 	return tempArr;
 }
 
-double *energyArrInit(int rebinSize){
+double* energyArrInit(int rebinSize){
 	int x;
 	double eMin = 0.2; //in Kev
 	double eMax = 10.0;
@@ -301,21 +326,22 @@ double *energyArrInit(int rebinSize){
 	
 }
 
-double *ellArrInit(int nEll, double rMax){
+double* ellArrInit(int nEll, double ellMax){
 	int x;
-	double eMin = 0.0; //in Kev
-	double eMax = rMax;
+	double eMin = 0.0; 
+	double eMax = ellMax;
 	double binWidth = (eMax-eMin)/nEll;
 	double *ellArr = new double[nEll];
 	ellArr[0] = eMin;
-	for (x=1; x<rMax; x++) {
+	for (x=1; x<ellMax; x++) {
 		ellArr[x] = ellArr[x-1]+binWidth;
 	}	
+    printf("ell range: %f to %f over %d bins\n", eMin, ellArr[nEll-1], nEll);
 	return ellArr;
 }
 
 
-double *tempGridInit(int tGridSize, double *tempAxis){
+double* tempGridInit(int tGridSize, double *tempAxis){
     double *tempGrid_h = (double*) calloc(tGridSize, sizeof(double));
     for(int i =0; i<tGridSize; i++){
 		tempGrid_h[i] = pow(10,tempAxis[i]);
@@ -323,7 +349,7 @@ double *tempGridInit(int tGridSize, double *tempAxis){
     return tempGrid_h;
 }
 
-double *metalGridInit(int mGridSize, double *metalAxis){
+double* metalGridInit(int mGridSize, double *metalAxis){
     double *metalGrid_h = (double*) calloc(mGridSize, sizeof(double));
     for(int i =0; i<mGridSize; i++){
 		metalGrid_h[i] = pow(10,metalAxis[i]);
@@ -331,21 +357,21 @@ double *metalGridInit(int mGridSize, double *metalAxis){
     return metalGrid_h;
 }
 
-double *rotMatInit(double theta, double phi, double epsilon){
+double* rotMatInit(double theta, double phi, double psi){
     double *rotMat = new double[9];
-    rotMat[0] = cos(epsilon)*cos(phi)-cos(theta)*sin(phi)*sin(epsilon);
-    rotMat[1] = cos(epsilon)*sin(phi)+cos(theta)*cos(phi)*sin(epsilon);
-    rotMat[2] = sin(epsilon)*sin(theta);
-    rotMat[3] = -sin(epsilon)*cos(phi)-cos(theta)*sin(phi)*cos(epsilon);
-    rotMat[4] = -sin(epsilon)*sin(phi)+cos(theta)*cos(phi)*cos(epsilon);
-    rotMat[5] = cos(epsilon)*sin(theta);
+    rotMat[0] = cos(psi)*cos(phi)-cos(theta)*sin(phi)*sin(psi);
+    rotMat[1] = cos(psi)*sin(phi)+cos(theta)*cos(phi)*sin(psi);
+    rotMat[2] = sin(psi)*sin(theta);
+    rotMat[3] = -sin(psi)*cos(phi)-cos(theta)*sin(phi)*cos(psi);
+    rotMat[4] = -sin(psi)*sin(phi)+cos(theta)*cos(phi)*cos(psi);
+    rotMat[5] = cos(psi)*sin(theta);
     rotMat[6] = sin(theta)*sin(phi);
     rotMat[7] = -sin(theta)*cos(phi);
     rotMat[8] = cos(theta);
     return rotMat;
 }
 
-double ***makeIntegralMatrix(double *integral_h, int nPixX, int nPixY, int binCenterSize){
+double*** makeIntegralMatrix(double *integral_h, int nPixX, int nPixY, int binCenterSize){
     double ***integralMatrix;
     integralMatrix = sci_ftensorD(nPixX, nPixY, binCenterSize);
     for (int x=0; x<nPixX; x++) {

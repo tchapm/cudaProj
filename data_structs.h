@@ -12,6 +12,8 @@
 
 float **sci_fmatrix(int nx, int ny);
 
+double **sci_fmatrixD(int nx, int ny);
+
 float ***sci_ftensor(int nx, int ny, int nz);
 
 double ***sci_ftensorD(int nx, int ny, int nz);

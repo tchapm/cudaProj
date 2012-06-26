@@ -32,6 +32,8 @@ double *emmArr_d;
 double *tempArr_h;
 double *tempArr_d;
 double *energyArr_h;
+double *ellArr_h;
+double *ellArr_d;
 //double *energyArr_d;
 double *rebinArr_h;
 double *rebinArr_d;
@@ -92,87 +94,6 @@ void Cleanup(void)
 }
 
 
-//
-//__global__ void integrate(float* rebinCool, float* tempArr, float* metalArr, float* emmArr, float* integral, float* tempGrid, float* metalGrid, constants theConst, bool debugging){
-//	//integrate from depth/2 to -depth/2
-//	int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel/energy-bin	
-//	int j= blockIdx.x;   
-//	int x, y;
-//	x = j/theConst.nPixX;
-//	y = j%theConst.nPixY;
-//	int energyBin = threadIdx.x;
-//	int a, b, n, step=1;
-//	float tFunct, h, actErr, last, nextVal;
-//	float T, Z, rebinA, rebinB;
-//	float prevStep[200];
-//	//b = theConst.depth/2 + theConst.nz/2;
-//	//a = theConst.nz/2 - theConst.depth/2;
-//	b = theConst.depth + theConst.nz/2-1;
-//	a = theConst.nz/2-1;
-//	h = b-a;
-//	actErr = 1.0;
-//	last = 1.E30;
-//	nextVal = 0.0;
-//	n = 1;
-//    
-//	T = __powf(10,tenRetrieveD(tempArr, theConst.nx, theConst.ny, theConst.nz, x, y, b));
-//	Z = __powf(10,tenRetrieveD(metalArr, theConst.nx, theConst.ny, theConst.nz, x, y, b));	
-//	rebinB = bilinInterpVal(rebinCool, T, Z, energyBin, tempGrid, metalGrid, theConst);
-//	T = __powf(10,tenRetrieveD(tempArr, theConst.nx, theConst.ny, theConst.nz, x, y, a));
-//	Z = __powf(10,tenRetrieveD(metalArr, theConst.nx, theConst.ny, theConst.nz, x, y, a));
-//	rebinA = bilinInterpVal(rebinCool, T, Z, energyBin, tempGrid, metalGrid, theConst);
-//	tFunct = 0.5*__powf(__powf(10,tenRetrieveD(emmArr, theConst.nx, theConst.ny, theConst.nz, x, y, a)), 2.0)* rebinA;
-//	tFunct += 0.5*__powf(__powf(10,tenRetrieveD(emmArr, theConst.nx, theConst.ny, theConst.nz, x, y, b)), 2.0)*rebinB;
-//    //iterate until convergence of integral
-//    prevStep[0] = tFunct;
-//	while (actErr>=0.1) {
-//		step=step*2;
-//		h = float(b-a)/step;
-//		nextVal = 0.0;
-//		for (int l=1; l<step; l=l+2) {
-//			T = linearInterpZ(tempArr, x, y, l*h+a, theConst);
-//            Z = linearInterpZ(metalArr, x, y, l*h+a, theConst);
-//			nextVal+=bilinInterpVal(rebinCool, T, Z, energyBin, tempGrid, metalGrid, theConst)*__powf(__powf(10,tenRetrieveD(emmArr, theConst.nx, theConst.ny, theConst.nz, x, y, l*h+a)), 2.0);
-//		}
-//		nextVal+=prevStep[n-1];
-//		prevStep[n]=nextVal;
-//		nextVal=h*(nextVal);
-//		actErr=fabs(last-nextVal);
-//		last=nextVal;
-//		n++;
-//	}
-//    
-//    if (debugging) {
-//        integral[0]=T;
-//        integral[1]=energyBin;
-//        integral[2]=i;
-//        integral[3]=Z;
-//        integral[4]=j;
-//        integral[5]=tFunct;
-//        integral[6]=__powf(__powf(10,tenRetrieveD(emmArr, theConst.nx, theConst.ny, theConst.nz, x, y, b)), 2.0);
-//        integral[7] = rebinA;
-//        integral[8] = n;
-//        integral[9] = last;
-//    }
-//    ////place integrations into the 1D array by thread number
-//	integral[i] = last;	 
-//}
-
-
-
-double* sumArea(int x1, int x2, int y1, int y2, double*** completeArr, constants theConst){
-    double* combinedRegion;
-    combinedRegion = (double*) calloc(theConst.binCenterSize, sizeof(double));
-    for (int k=0; k<theConst.binCenterSize; k++) {
-        for (int i=x1; i<=x2; i++) {
-            for (int j=y1; j<=y2; j++) {
-                combinedRegion[k]+= powf(10,completeArr[i][j][k]);
-            }
-        }
-        combinedRegion[k]=log10(combinedRegion[k]);
-    }
-    return combinedRegion;
-}
 void constInit(constants &theConst, jaco_state ja){
     theConst.eGridSize = ja.egridsize;
 	theConst.tGridSize = ja.tgridsize;
@@ -196,34 +117,31 @@ void constInit(constants &theConst, jaco_state ja){
     theConst.tempArr=ja.Tprof;
     theConst.emmArr=ja.nenhprof;
 	theConst.accuracy=0.0001;
-    //	theConst.nGrid=1;
-//	theConst.nx=256;
-//	theConst.ny=256;
-//	theConst.nz=256;	
+	theConst.nz = 256; //this should be changed!!!
+    theConst.ellMax = powf(theConst.nPixX*theConst.nPixX + theConst.nPixY*theConst.nPixY + theConst.rMax*theConst.rMax,0.5); //????
     
 }
+//jaco_state ja;
+//ja.nlastbin = 256;
+//ja.rshock = 2.0;
+//ja.angdist = 10;
+//ja.pixscale = 10;
+//ja.nx = 128;
+//ja.ny = 128;
+//ja.theta = 0;
+//ja.phi = 0;
+//ja.epsilon = 0;
+//ja.a_ell = 1.0;
+//ja.b_ell = 1.0;
+//ja.n_ell = ja.nx*ja.ny*ja.rshock;
 
-
-double *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
+double*** runSimulation(jaco_state ja){
     ////////////set constants and sizes of data structures
     clock_t sTime, eTime, sLoadTime, eLoadTime, sGPUTime, eGPUTime, sCoolTime, eCoolTime, sIntTime, eIntTime;
     /////////////start clock
     sTime = clock();
 	constants theConst;
 	constInit(theConst, ja);
-    
-//    file_reader coolingFile;
-//	double centBin[theConst.binCenterSize];
-//	strcpy(coolingFile.spectralCode, "/home/tchap/mekal.bin");
-//	coolingFile.debug = 2;
-//	read_cooling_function(coolingFile);
-//    makeReBin(centBin, theConst.binCenterSize);
-//	rebincoolingfunction(centBin, theConst.binCenterSize, coolingFile);
-//    theConst.tGridSize = coolingFile.tGridSize;
-//    theConst.mGridSize = coolingFile.mGridSize;
-//    theConst.eGridSize = coolingFile.eGridSize;
-//    theConst.tempAxis = coolingFile.tempAxis;
-//    theConst.metalAxis = coolingFile.metalAxis;
     
 	size_t sizeT = theConst.n_ell*sizeof(double);
 	size_t sizeEn = theConst.binCenterSize*sizeof(double);
@@ -247,6 +165,8 @@ double *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
 	tempArr_h = theConst.tempArr;
 	emmArr_h = theConst.emmArr;
 	energyArr_h = energyArrInit(theConst.binCenterSize);
+    ellArr_h = ellArrInit(theConst.n_ell,theConst.rMax);
+    
 	integral_h = new double[theConst.nPixX*theConst.nPixY*theConst.binCenterSize];
 	
 	////////////create temperature and metallicity grids for interpolation within the device
@@ -279,7 +199,9 @@ double *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
     cudaMalloc((void**)&metalGrid_d, sizeMGrid);
 	cudaMemcpy(metalGrid_d, metalGrid_h, sizeMGrid, cudaMemcpyHostToDevice);
     cudaMalloc((void**)&rotMat_d, 9*sizeof(double));
-	cudaMemcpy(rotMat_d, rotMat_h,  9*sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy(rotMat_d, rotMat_h, 9*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&ellArr_d, theConst.n_ell*sizeof(double));
+	cudaMemcpy(ellArr_d, ellArr_h, theConst.n_ell*sizeof(double), cudaMemcpyHostToDevice);
     eGPUTime = clock();
     
     ///////////////test to see if cuda node is functioning
@@ -299,31 +221,19 @@ double *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
         printf("Cuda node is broken. Fix before proceeding.\n");
     }
     
-    bool debugging = false;
+    bool debugging = true;
     //////////////call the integration
     printf("Running integration\n");
     sIntTime = clock();
-    double * combinedRegion;
+    double*** integralMatrix;
     if (cudaWorking) {
-        integrate2<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, rotMat_d,theConst, debugging);
+        integrate2<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, rotMat_d, ellArr_d, theConst, debugging);
         printf("Transferring integration results back to CPU\n \n");
         cudaMemcpy(integral_h, integral_d, sizeInt, cudaMemcpyDeviceToHost);
         eIntTime = clock();
         
         //convert integral_h back to a tensor
-        double *** integralMatrix = makeIntegralMatrix(integral_h, theConst.nPixX, theConst.nPixY, theConst.binCenterSize); 
-        bool displayRegion = true;
-        ///////////////////display the spectra at different combined locations
-        if(displayRegion){
-            int gridX1 = x1;
-            int gridX2 = x2;
-            int gridY1 = y1;
-            int gridY2 = y2;
-            combinedRegion = sumArea(gridX1,gridX2,gridY1,gridY2,integralMatrix,theConst);
-//            for (int i=0; i<theConst.binCenterSize; i++) {
-//                printf("bin[%d] = %f  %f  ",i, combinedRegion[i], log10(powf(10,integralMatrix[1][2][i]) + powf(10,integralMatrix[2][2][i])));
-//            }
-        }
+        integralMatrix = makeIntegralMatrix(integral_h, theConst.nPixX, theConst.nPixY, theConst.binCenterSize); 
         
         //////////////print the spectra
         bool printSpect = false;
@@ -378,24 +288,50 @@ double *runSimulation(jaco_state ja, int x1, int x2, int y1, int y2){
             cudaMemcpy(integral_h, integral_d, sizeInt, cudaMemcpyDeviceToHost);
         }
     }    
-    return combinedRegion;
+    return integralMatrix;
 	
+}
+
+double *sumArea(int x1, int x2, int y1, int y2, double*** completeArr, int nBins){
+    double *combinedRegion;
+    combinedRegion = (double*) calloc(nBins, sizeof(double));
+    for (int k=0; k<nBins; k++) {
+        for (int i=x1; i<=x2; i++) {
+            for (int j=y1; j<=y2; j++) {
+                combinedRegion[k]+= powf(10,completeArr[i][j][k]);
+            }
+        }
+        combinedRegion[k]=log10(combinedRegion[k]);
+    }
+    return combinedRegion;
+}
+
+double **multiSpec(double ***totalSpecta,int inputRegions[][4], int numSpectra, int numBins){
+    double **tempTotal = sci_fmatrixD(numSpectra, numBins);
+    double *oneRunResults; 
+    for (int i=0; i<numSpectra; i++) {
+        oneRunResults = sumArea(inputRegions[i][0], inputRegions[i][1], inputRegions[i][2], inputRegions[i][3], totalSpecta, numBins);
+        for(int j=0; j<numBins; j++){
+            tempTotal[i][j] = oneRunResults[j]; 
+        }
+    }
+    return tempTotal;
 }
 
 int main(){
     jaco_state ja;
     ja.nlastbin = 256;
-    ja.rshock = 1.0;
+    ja.rshock = 2.0;
     ja.angdist = 10;
     ja.pixscale = 10;
     ja.nx = 128;
     ja.ny = 128;
-    ja.theta = 0;
-    ja.phi = 0;
-    ja.epsilon = 0;
+    ja.theta = 1;
+    ja.phi = 1;
+    ja.epsilon = 1.0;
     ja.a_ell = 1.0;
     ja.b_ell = 1.0;
-    ja.n_ell = 256*256*256;
+    ja.n_ell = ja.rshock*ja.ny*ja.nx; //or 256*256*256?
     
 	file_reader coolingFile;
 	double centBin[ja.nlastbin];
@@ -411,12 +347,38 @@ int main(){
     ja.egridsize = coolingFile.eGridSize;
     ja.tempaxis = coolingFile.tempAxis;
     ja.metalaxis = coolingFile.metalAxis;
-    ja.Tprof = tempArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
-    ja.Zprof = metalArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
-    ja.nenhprof = emmArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.rshock);
-    double *results = runSimulation(ja, 2,4,3,5);
+    
+    ja.Tprof = tempArrInit(ja.n_ell, ja.a_ell, ja.b_ell, 2*ja.nPixX*ja.nPixY); //is nPixX correct?
+    ja.Zprof = metalArrInit(ja.n_ell, ja.a_ell, ja.b_ell, 2*ja.nPixX*ja.nPixY);
+    ja.nenhprof = emmArrInit(ja.n_ell, ja.a_ell, ja.b_ell, 2*ja.nPixX*ja.nPixY);
+    
+    //input region values as a matrix with the desired num of spectra as first component
+    //the second component is the four corners of the rectangular region
+    int numSpectra;
+    numSpectra = 3;
+    //example of input with three regions
+    int inputRegions[3][4] = 
+    {
+        {3, 3, 3, 3, }, // row 0
+        {20, 21, 20, 21, }, // row 1
+        {51, 51, 51, 51} // row 2
+    };
+//    int anArray[3][5] =
+//    {
+//        { 1, 2, 3, 4, 5, }, // row 0
+//        { 6, 7, 8, 9, 10, }, // row 1
+//        { 11, 12, 13, 14, 15 } // row 2
+//    };
+    //example: to get spectra for x=10, y=15 loop through i=0->i=nlastbin for totalSpectra[10][15][i]
+    double ***totalSpectra = runSimulation(ja); //spectra for all the regions
+    //the expected output of my program as a double** where the first component is the index of the desired region and the second is the array of the spectra
+    double **collectedResults = multiSpec(totalSpectra, inputRegions, numSpectra, ja.nlastbin);
+    
+    double *results = sumArea(3, 3, 3, 3, totalSpectra, ja.nlastbin);
+    //
     for (int i=0; i<ja.nlastbin; i++) {
-        printf("bin[%d] = %f  ",i, results[i]);
+//        printf("area1[%d] = %f  ",i, collectedResults[0][i]);
+//        printf("area2[%d] = %f  ",i, results[i]);
     }
     Cleanup();
 	return 0;
