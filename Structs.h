@@ -33,7 +33,7 @@ struct constants {
     double* emmArr;
 	float accuracy;
 	int nz;
-    double ellMax
+    double ellMax;
 	
 };
 

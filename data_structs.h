@@ -9,7 +9,7 @@
 
 #ifndef DATA_STRUCTS_H
 #define DATA_STRUCTS_H
-
+#include "Structs.h"
 float **sci_fmatrix(int nx, int ny);
 
 double **sci_fmatrixD(int nx, int ny);
@@ -48,16 +48,18 @@ double *metalGridInit(int mGridSize, double *metalAxis);
 
 double *rotMatInit(double theta, double phi, double epsilon);
 
-float ***makeIntegralMatrix(float *integral_h, int nPixX, int nPixY, int binCenterSize);
+double ***makeIntegralMatrix(double *integral_h, int nPixX, int nPixY, int binCenterSize);
 
 double oneDArrayToMatrix(double oneDArray[], int nx, int ny);
     
-float get3DValFrom1DArray(float oneDArray[], int x, int y, int z, int nx, int ny, int nz);
+double get3DValFrom1DArray(double oneDArray[], int x, int y, int z, int nx, int ny, int nz);
 
-float get2DValFrom1DArray(float oneDArray[], int x, int y, int nx, int ny);
+double get2DValFrom1DArray(double oneDArray[], int x, int y, int nx, int ny);
 
 double tenRetrieveH(double oneDArray[], int nx, int ny, int nz, int x, int y, int z);
 
-void printSpectra(float *** integralMatrix, int nPixX, int nPixY);
+void printSpectra(double*** integralMatrix, double* energyArr, constants theConst);
+
+void sumSpectra(double*** integralMatrix, double* energyArr, constants theConst);
 
 #endif

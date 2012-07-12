@@ -330,6 +330,7 @@ struct jaco_state {
     
     // Triaxial mode parameters
     int n_ell;
+    double ell_max;
     double *Tprof,*Zprof,*nenhprof;
     double a_ell,b_ell;
     int ***corners;

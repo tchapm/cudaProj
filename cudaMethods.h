@@ -24,7 +24,7 @@ __device__ int getLowerIndex(double* axisArr, double value, int arrLength);
 __device__ double bilinInterpVal(double* interpMat, double y, double z, int energyBin, double* tempGrid, double* metalGrid, constants theConst);
 
 
-__device__ double getEll(int x, int y, int z, double* rotMat, double a, double b);
+__device__ double getEll(double x, double y, double z, double* rotMat, double a, double b);
 
 __global__ void integrate2(double* rebinCool, double* tempArr, double* metalArr, double* emmArr, double* integral, double* tempGrid, double* metalGrid, double* rotMat, constants theConst, bool debugging);
 

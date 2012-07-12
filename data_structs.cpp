@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <math.h>
 #include <sstream>
+#include "Structs.h"
 //#include <sciutils.h>
 //#include <jaco.h>
 
@@ -223,8 +224,11 @@ double *metalArrInit(int nx, int ny, int nz){
 double *metalArrInit(int nEll, double a_ell, double b_ell, double ellMax){
 	double *metalArr = new double[nEll];
     double *ellArr = ellArrInit(nEll, ellMax);
+    double offset;
     for(int k=0; k<nEll; k++){
-        metalArr[k] = log10(1.0);
+        offset = k*0.907;
+        metalArr[k] = log10((nEll-offset)/nEll);
+//        printf("metalArr[%d] = %f\n", k,  powf(10,metalArr[k]));
     }
 	return metalArr;
 }
@@ -261,6 +265,7 @@ double *emmArrInit(int nEll, double a_ell, double b_ell, double ellMax){
     ellArr = ellArrInit(nEll, ellMax);
     for(int k=0; k<nEll; k++){
         emmArr[k] = log10(pow(rNot+0.01*ellArr[k],-3));
+//        printf("emmArr[%d] = %f\n", k,  emmArr[k]);
     }
 	return emmArr;
 }
@@ -307,7 +312,9 @@ double* tempArrInit(int nEll, double a_ell, double b_ell, double ellMax){
     ellArr = ellArrInit(nEll, ellMax);
     for(int k=0; k<nEll; k++){
         tempArr[k]=log10(6.7*pow(rNot+0.01*ellArr[k],-1.0));
+//        printf("tempArr[%d] = %f\n", k,  tempArr[k]);
     }
+    
     
 	return tempArr;
 }
@@ -328,14 +335,16 @@ double* energyArrInit(int rebinSize){
 
 double* ellArrInit(int nEll, double ellMax){
 	int x;
-	double eMin = 0.0; 
+	double eMin = 0.1; 
 	double eMax = ellMax;
 	double binWidth = (eMax-eMin)/nEll;
 	double *ellArr = new double[nEll];
-	ellArr[0] = eMin;
-	for (x=1; x<ellMax; x++) {
+	ellArr[0] = binWidth;
+	for (x=1; x<nEll; x++) {
 		ellArr[x] = ellArr[x-1]+binWidth;
+//        printf("ellArr[%d] = %f\n", x, ellArr[x]);
 	}	
+//    printf("ellMax: %f\n", ellMax);
     printf("ell range: %f to %f over %d bins\n", eMin, ellArr[nEll-1], nEll);
 	return ellArr;
 }
@@ -360,14 +369,23 @@ double* metalGridInit(int mGridSize, double *metalAxis){
 double* rotMatInit(double theta, double phi, double psi){
     double *rotMat = new double[9];
     rotMat[0] = cos(psi)*cos(phi)-cos(theta)*sin(phi)*sin(psi);
+    printf("\nRotMat[0] = %f",rotMat[0]);
     rotMat[1] = cos(psi)*sin(phi)+cos(theta)*cos(phi)*sin(psi);
+    printf("\nRotMat[1] = %f",rotMat[1]);
     rotMat[2] = sin(psi)*sin(theta);
+        printf("\nRotMat[2] = %f",rotMat[2]);
     rotMat[3] = -sin(psi)*cos(phi)-cos(theta)*sin(phi)*cos(psi);
+        printf("\nRotMat[3] = %f",rotMat[3]);
     rotMat[4] = -sin(psi)*sin(phi)+cos(theta)*cos(phi)*cos(psi);
+        printf("\nRotMat[4] = %f",rotMat[4]);
     rotMat[5] = cos(psi)*sin(theta);
+        printf("\nRotMat[5] = %f",rotMat[5]);
     rotMat[6] = sin(theta)*sin(phi);
+        printf("\nRotMat[6] = %f",rotMat[6]);
     rotMat[7] = -sin(theta)*cos(phi);
+        printf("\nRotMat[7] = %f",rotMat[7]);
     rotMat[8] = cos(theta);
+        printf("\nRotMat[8] = %f\n",rotMat[8]);
     return rotMat;
 }
 
@@ -408,41 +426,144 @@ double tenRetrieveH(double* oneDArray, int nx, int ny, int nz, int x, int y, int
 	return oneDArray[index];
 }
 
-void printSpectra(double *** integralMatrix, int nPixX, int nPixY){
+void printSpectra(double*** integralMatrix, double* energyArr, constants theConst){
     printf("\nX = [%f, ", integralMatrix[0][0][0]);
-    for (int i=1; i<255; i++) {
+    for (int i=1; i<theConst.binCenterSize-1; i++) {
         printf("%f, ", integralMatrix[0][0][i]);
     }
-    printf("%f]\n ", integralMatrix[0][0][255]); 
-    printf("\nY = [%f, ", integralMatrix[nPixX/6][nPixY/6][0]);
-    for (int i=1; i<255; i++) {
-        printf("%f, ", integralMatrix[nPixX/6][nPixY/6][i]);
+    printf("%f]\n ", integralMatrix[0][0][theConst.binCenterSize-1]); 
+    printf("\nY = [%f, ", integralMatrix[theConst.nPixX/6][theConst.nPixY/6][0]);
+    for (int i=1; i<theConst.binCenterSize-1; i++) {
+        printf("%f, ", integralMatrix[theConst.nPixX/6][theConst.nPixY/6][i]);
     }
-    printf("%f]\n ",integralMatrix[nPixX/6][nPixY/6][255]);
-    printf("\nZ = [%f, ", integralMatrix[2*nPixX/6][2*nPixY/6][0]);
-    for (int i=1; i<255; i++) {
-        printf("%f, ", integralMatrix[2*nPixX/6][2*nPixY/6][i]);
+    printf("%f]\n ",integralMatrix[theConst.nPixX/6][theConst.nPixY/6][theConst.binCenterSize-1]);
+    printf("\nZ = [%f, ", integralMatrix[2*theConst.nPixX/6][2*theConst.nPixY/6][0]);
+    for (int i=1; i<theConst.binCenterSize-1; i++) {
+        printf("%f, ", integralMatrix[2*theConst.nPixX/6][2*theConst.nPixY/6][i]);
     }
-    printf("%f]\n ",integralMatrix[2*nPixX/6][2*nPixY/6][255]);
-    printf("\nN = [%f, ", integralMatrix[3*nPixX/6][3*nPixY/6][0]);
-    for (int i=1; i<255; i++) {
-        printf("%f, ", integralMatrix[3*nPixX/6][3*nPixY/6][i]);
+    printf("%f]\n ",integralMatrix[2*theConst.nPixX/6][2*theConst.nPixY/6][theConst.binCenterSize-1]);
+    printf("\nN = [%f, ", integralMatrix[3*theConst.nPixX/6][3*theConst.nPixY/6][0]);
+    for (int i=1; i<theConst.binCenterSize-1; i++) {
+        printf("%f, ", integralMatrix[3*theConst.nPixX/6][3*theConst.nPixY/6][i]);
     }
-    printf("%f]\n ",integralMatrix[3*nPixX/6][3*nPixY/6][255]);
-    printf("\nM = [%f, ", integralMatrix[4*nPixX/6][4*nPixY/6][0]);
-    for (int i=1; i<255; i++) {
-        printf("%f, ", integralMatrix[4*nPixX/6][4*nPixY/6][i]);
+    printf("%f]\n ",integralMatrix[3*theConst.nPixX/6][3*theConst.nPixY/6][theConst.binCenterSize-1]);
+    printf("\nM = [%f, ", integralMatrix[4*theConst.nPixX/6][4*theConst.nPixY/6][0]);
+    for (int i=1; i<theConst.binCenterSize-1; i++) {
+        printf("%f, ", integralMatrix[4*theConst.nPixX/6][4*theConst.nPixY/6][i]);
     }
-    printf("%f]\n ",integralMatrix[4*nPixX/6][4*nPixY/6][255]);
-    printf("\nW = [%f, ", integralMatrix[5*nPixX/6][5*nPixY/6][0]);
-    for (int i=1; i<255; i++) {
-        printf("%f, ", integralMatrix[5*nPixX/6][5*nPixY/6][i]);
+    printf("%f]\n ",integralMatrix[4*theConst.nPixX/6][4*theConst.nPixY/6][theConst.binCenterSize-1]);
+    printf("\nW = [%f, ", integralMatrix[5*theConst.nPixX/6][5*theConst.nPixY/6][0]);
+    for (int i=1; i<theConst.binCenterSize-1; i++) {
+        printf("%f, ", integralMatrix[5*theConst.nPixX/6][5*theConst.nPixY/6][i]);
     }
-    printf("%f]\n ",integralMatrix[5*nPixX/6][5*nPixY/6][255]);
-    printf("\nT = [%f, ", integralMatrix[nPixX-1][nPixY-1][0]);
-    for (int i=1; i<255; i++) {
-        printf("%f, ", integralMatrix[nPixX-1][nPixY-1][i]);
+    printf("%f]\n ",integralMatrix[5*theConst.nPixX/6][5*theConst.nPixY/6][theConst.binCenterSize-1]);
+    printf("\nT = [%f, ", integralMatrix[theConst.nPixX-1][theConst.nPixY-1][0]);
+    for (int i=1; i<theConst.binCenterSize-1; i++) {
+        printf("%f, ", integralMatrix[theConst.nPixX-1][theConst.nPixY-1][i]);
     }
-    printf("%f]\n ",integralMatrix[nPixX-1][nPixY-1][255]);
+    printf("%f]\n ",integralMatrix[theConst.nPixX-1][theConst.nPixY-1][theConst.binCenterSize-1]);
+    printf("\nenergyBin = [%f, ", energyArr[0]);
+    for (int i=1; i<theConst.binCenterSize-1; i++) {
+        printf("%f, ", energyArr[i]);
+    }
+    printf("%f]\n ",energyArr[theConst.binCenterSize-1]);
+    double pixToMpc = 0.01;
+    printf("XMpc = %f\n", pixToMpc*0*theConst.nPixY/6*pow(2, 0.5));
+    printf("YMpc = %f\n", pixToMpc*1*theConst.nPixY/6*pow(2, 0.5));
+    printf("ZMpc = %f\n", pixToMpc*2*theConst.nPixY/6*pow(2, 0.5));
+    printf("NMpc = %f\n", pixToMpc*3*theConst.nPixY/6*pow(2, 0.5));
+    printf("MMpc = %f\n", pixToMpc*4*theConst.nPixY/6*pow(2, 0.5));
+    printf("WMpc = %f\n", pixToMpc*5*theConst.nPixY/6*pow(2, 0.5));
+    printf("TMpc = %f\n", pixToMpc*6*theConst.nPixY/6*pow(2, 0.5));
 }
 
+
+void sumSpectra(double*** integralMatrix, double* energyArr, constants theConst){
+    double sum = 0.0;
+    double minEnergy = 0.2, maxEnergy = 10.0;
+    double eBin = (maxEnergy-minEnergy)/theConst.binCenterSize;
+    double pixToMpc = 0.01;
+    for (int i=0; i<theConst.binCenterSize; i++) {
+        sum += pow(10,integralMatrix[0*theConst.nPixX/128][0*theConst.nPixY/128][i]);
+    }
+    printf("\nFlux = [%f ", sum*eBin);
+    for (int j=1; j<128; j++) {
+        sum = 0.0;
+        for (int i=0; i<theConst.binCenterSize; i++) {
+            sum += pow(10,integralMatrix[j*theConst.nPixX/128][j*theConst.nPixY/128][i]);
+        }
+        printf(", %f", sum*eBin);
+    }
+    printf("]");
+    printf("\nposNum = [%d ", 0);
+    for (int i=1; i<128; i++) {
+        printf(", %f", i*pixToMpc*pow(2,0.5));
+    }
+    printf("]\n");
+    
+}
+
+void plotImage(double*** integralMatrix, double* energyArr, constants theConst){
+    double sum = 0.0;
+    double minEnergy = 0.2, maxEnergy = 10.0;
+    double eBin = (maxEnergy-minEnergy)/theConst.binCenterSize;
+    double pixToMpc = 0.01;
+    double** plot; 
+    for (int j=0; j<128; j++) {
+        sum = 0.0;
+        for (int i=0; i<theConst.binCenterSize; i++) {
+            sum += pow(10,integralMatrix[0][j][i]);
+        }
+    }
+    FILE *file; 
+    file = fopen("/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/fluxPhi90.txt","w"); /* apend file (add text to 
+                                    a file or create a file if it does not exist.*/ 
+    fprintf(file,"%s","\nFlux = [");
+    fprintf(file,"%f", sum*eBin);
+   
+    printf("\nFlux = [%f ", sum*eBin);
+    for (int k=0; k<128; k++) {
+        for (int j=0; j<128; j++) {
+            sum = 0.0;
+            for (int i=0; i<theConst.binCenterSize; i++) {
+                sum += pow(10,integralMatrix[k][j][i]);
+            }
+            if(k>0 || j>0){
+                fprintf(file,"%s",", ");
+                fprintf(file,"%f", sum*eBin);
+                printf(", %f", sum*eBin);
+            }
+        }
+    }
+    fprintf(file,"%s","]\n");
+    printf("]\n");
+    fclose(file); 
+//    printf("\nposNum = [%d ", 0);
+//    for (int j=0; j<128; j++) {
+//        for (int i=0; i<128; i++) {
+//             if(i>0 || j>0){
+//                 printf(", %f", pow((i*i + j*j)*pixToMpc,0.5));
+//             }
+//        }
+//    }
+//    printf("]\n");
+//    printf("\nX = [%d ", 0);
+//    for (int j=0; j<128; j++) {
+//        for (int i=0; i<128; i++) {
+//            if(i>0 || j>0){
+//                printf(", %d", j);
+//            }
+//        }
+//    }
+//    printf("]\n");
+//    printf("\nY = [%d ", 0);
+//    for (int j=0; j<128; j++) {
+//        for (int i=0; i<128; i++) {
+//            if(i>0 || j>0){
+//                printf(", %d", j);
+//            }
+//        }
+//    }
+//    printf("]\n");
+    
+}
