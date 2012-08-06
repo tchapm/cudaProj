@@ -47,6 +47,7 @@ double *tempGrid_h;
 double *tempGrid_d;
 double *rotMat_h;
 double *rotMat_d;
+constants theConst;
 
 
 void Cleanup(void)
@@ -142,7 +143,7 @@ double*** runSimulation(jaco_state ja){
     clock_t sTime, eTime, sLoadTime, eLoadTime, sGPUTime, eGPUTime, sCoolTime, eCoolTime, sIntTime, eIntTime;
     /////////////start clock
     sTime = clock();
-	constants theConst;
+	
 	constInit(theConst, ja);
     
 	size_t sizeT = theConst.n_ell*sizeof(double);
@@ -242,9 +243,9 @@ double*** runSimulation(jaco_state ja){
         if(printSpect){
             printSpectra(integralMatrix, energyArr_h, theConst);
         }
-        bool sumSpect = true;
+        bool sumSpect = false;
         if(sumSpect){
-            plotImage(integralMatrix, energyArr_h, theConst);
+//            plotImage(integralMatrix, energyArr_h, theConst);
 //            sumSpectra(integralMatrix, energyArr_h, theConst);
         }
         eTime = clock();
@@ -336,9 +337,9 @@ int main(){
     ja.ny = 128;
     ja.theta = degVal*PI/180;
     ja.phi = 0;//degVal*PI/180;
-    ja.epsilon = 0;//degVal*PI/180;
-    ja.a_ell = 1.0;
-    ja.b_ell = 5.0;
+    ja.epsilon = degVal*PI/180;
+    ja.a_ell = 6.0;
+    ja.b_ell = 3.0;
     ja.n_ell = ja.nx; //or 256*256*256?
     ja.ell_max = ja.rshock + 0.1;
     
@@ -378,8 +379,23 @@ int main(){
 //        { 11, 12, 13, 14, 15 } // row 2
 //    };
     //example: to get spectra for x=10, y=15 loop through i=0->i=nlastbin for totalSpectra[10][15][i]
-    double ***totalSpectra = runSimulation(ja); //spectra for all the regions
+//    double ***totalSpectra = runSimulation(ja); //spectra for all the regions
+    char* filePrefix = "/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/";
+    for(int i=10;i<=180;i+=10){
+        ja.epsilon = i*PI/180;
+        char filePrefix[265] = "/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/";
+        ostringstream convert; 
+        convert << i;       
+        char* inputName = new char [convert.str().size()+1];
+        strcpy(inputName,convert.str().c_str());
+        strcat(filePrefix,inputName);
+        strcat(filePrefix,"epsilon.txt");
+        printf("printing to %s.\n",filePrefix);
+        double ***totalSpectra = runSimulation(ja);
+        plotImage(totalSpectra, energyArr_h, theConst, filePrefix);
+    }
     //the expected output of my program as a double** where the first component is the index of the desired region and the second is the array of the spectra
+    double ***totalSpectra = runSimulation(ja);
     double **collectedResults = multiSpec(totalSpectra, inputRegions, numSpectra, ja.nlastbin);
     
     double *results = sumArea(3, 3, 3, 3, totalSpectra, ja.nlastbin);

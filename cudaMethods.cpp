@@ -110,9 +110,13 @@ __global__ void integrate2(double* rebinCool, double* tempArr, double* metalArr,
     int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel/energy-bin
     int j= blockIdx.x;   
 	int x, y;
-	x = j/theConst.nPixX;
-	y = j%theConst.nPixY;
+    //TODO 
+	//TODO change to put in center not corner
+    x = j/theConst.nPixX-(theConst.nPixX/2);
+	y = j%theConst.nPixY-(theConst.nPixY/2);
     double pixToMpc = 0.01;
+    
+
     double xMpc = pixToMpc*x;
     double yMpc = pixToMpc*y;
 	int energyBin = threadIdx.x;

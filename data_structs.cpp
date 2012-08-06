@@ -369,23 +369,23 @@ double* metalGridInit(int mGridSize, double *metalAxis){
 double* rotMatInit(double theta, double phi, double psi){
     double *rotMat = new double[9];
     rotMat[0] = cos(psi)*cos(phi)-cos(theta)*sin(phi)*sin(psi);
-    printf("\nRotMat[0] = %f",rotMat[0]);
+//    printf("\nRotMat[0] = %f",rotMat[0]);
     rotMat[1] = cos(psi)*sin(phi)+cos(theta)*cos(phi)*sin(psi);
-    printf("\nRotMat[1] = %f",rotMat[1]);
+//    printf("\nRotMat[1] = %f",rotMat[1]);
     rotMat[2] = sin(psi)*sin(theta);
-        printf("\nRotMat[2] = %f",rotMat[2]);
+//        printf("\nRotMat[2] = %f",rotMat[2]);
     rotMat[3] = -sin(psi)*cos(phi)-cos(theta)*sin(phi)*cos(psi);
-        printf("\nRotMat[3] = %f",rotMat[3]);
+//        printf("\nRotMat[3] = %f",rotMat[3]);
     rotMat[4] = -sin(psi)*sin(phi)+cos(theta)*cos(phi)*cos(psi);
-        printf("\nRotMat[4] = %f",rotMat[4]);
+//        printf("\nRotMat[4] = %f",rotMat[4]);
     rotMat[5] = cos(psi)*sin(theta);
-        printf("\nRotMat[5] = %f",rotMat[5]);
+//        printf("\nRotMat[5] = %f",rotMat[5]);
     rotMat[6] = sin(theta)*sin(phi);
-        printf("\nRotMat[6] = %f",rotMat[6]);
+//        printf("\nRotMat[6] = %f",rotMat[6]);
     rotMat[7] = -sin(theta)*cos(phi);
-        printf("\nRotMat[7] = %f",rotMat[7]);
+//        printf("\nRotMat[7] = %f",rotMat[7]);
     rotMat[8] = cos(theta);
-        printf("\nRotMat[8] = %f\n",rotMat[8]);
+//        printf("\nRotMat[8] = %f\n",rotMat[8]);
     return rotMat;
 }
 
@@ -503,7 +503,7 @@ void sumSpectra(double*** integralMatrix, double* energyArr, constants theConst)
     
 }
 
-void plotImage(double*** integralMatrix, double* energyArr, constants theConst){
+void plotImage(double*** integralMatrix, double* energyArr, constants theConst, char* fileName){
     double sum = 0.0;
     double minEnergy = 0.2, maxEnergy = 10.0;
     double eBin = (maxEnergy-minEnergy)/theConst.binCenterSize;
@@ -516,12 +516,13 @@ void plotImage(double*** integralMatrix, double* energyArr, constants theConst){
         }
     }
     FILE *file; 
-    file = fopen("/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/fluxPhi90.txt","w"); /* apend file (add text to 
+    
+    file = fopen(fileName ,"w"); /* apend file (add text to 
                                     a file or create a file if it does not exist.*/ 
     fprintf(file,"%s","\nFlux = [");
     fprintf(file,"%f", sum*eBin);
    
-    printf("\nFlux = [%f ", sum*eBin);
+//    printf("\nFlux = [%f ", sum*eBin);
     for (int k=0; k<128; k++) {
         for (int j=0; j<128; j++) {
             sum = 0.0;
@@ -531,12 +532,12 @@ void plotImage(double*** integralMatrix, double* energyArr, constants theConst){
             if(k>0 || j>0){
                 fprintf(file,"%s",", ");
                 fprintf(file,"%f", sum*eBin);
-                printf(", %f", sum*eBin);
+//                printf(", %f", sum*eBin);
             }
         }
     }
     fprintf(file,"%s","]\n");
-    printf("]\n");
+//    printf("]\n");
     fclose(file); 
 //    printf("\nposNum = [%d ", 0);
 //    for (int j=0; j<128; j++) {
