@@ -342,10 +342,8 @@ double* ellArrInit(int nEll, double ellMax){
 	ellArr[0] = binWidth;
 	for (x=1; x<nEll; x++) {
 		ellArr[x] = ellArr[x-1]+binWidth;
-//        printf("ellArr[%d] = %f\n", x, ellArr[x]);
 	}	
-//    printf("ellMax: %f\n", ellMax);
-    printf("ell range: %f to %f over %d bins\n", eMin, ellArr[nEll-1], nEll);
+//    printf("ell range: %f to %f over %d bins\n", eMin, ellArr[nEll-1], nEll);
 	return ellArr;
 }
 
@@ -423,6 +421,9 @@ double get2DValFrom1DArray(double oneDArray[], int x, int y, int nx, int ny){
 
 double tenRetrieveH(double* oneDArray, int nx, int ny, int nz, int x, int y, int z){
 	int index = x*ny*nz + y*nz + z;
+    if (isnan(oneDArray[index])){// && index>2080512 && index<2080527) {
+        printf("\nindex = %d",index);
+    }
 	return oneDArray[index];
 }
 
@@ -519,25 +520,28 @@ void plotImage(double*** integralMatrix, double* energyArr, constants theConst, 
     
     file = fopen(fileName ,"w"); /* apend file (add text to 
                                     a file or create a file if it does not exist.*/ 
-    fprintf(file,"%s","\nFlux = [");
-    fprintf(file,"%f", sum*eBin);
-   
-//    printf("\nFlux = [%f ", sum*eBin);
-    for (int k=0; k<128; k++) {
-        for (int j=0; j<128; j++) {
+//    fprintf(file,"%s","\nFlux = [");
+
+    fprintf(file,"%d\n", theConst.nPixX*theConst.nPixY);
+//    fprintf(file,"%f", sum*eBin);
+    printf("\nFlux = [%f ", sum*eBin);
+    int i=0;
+    for (int k=0; k<theConst.nPixX; k++) {
+        for (int j=0; j<theConst.nPixY; j++) {
             sum = 0.0;
-            for (int i=0; i<theConst.binCenterSize; i++) {
+            for (i=0; i<theConst.binCenterSize; i++) {
                 sum += pow(10,integralMatrix[k][j][i]);
             }
+            fprintf(file," %f", sum*eBin);
+//            printf(", %f", sum*eBin);
             if(k>0 || j>0){
-                fprintf(file,"%s",", ");
-                fprintf(file,"%f", sum*eBin);
-//                printf(", %f", sum*eBin);
+//                fprintf(file,"%s",", ");
+//                
             }
         }
     }
-    fprintf(file,"%s","]\n");
-//    printf("]\n");
+//    fprintf(file,"%s","]\n");
+    printf("]\n");
     fclose(file); 
 //    printf("\nposNum = [%d ", 0);
 //    for (int j=0; j<128; j++) {

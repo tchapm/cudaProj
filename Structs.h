@@ -22,7 +22,7 @@ struct constants {
 	long binCenterSize;
     double theta;
     double phi;
-    double epsilon;
+    double psi;
     double a_ell;
     double b_ell;
     int n_ell;

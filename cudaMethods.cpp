@@ -44,7 +44,7 @@ __device__ double linearInterpEll(double* interpMat, double ell, constants theCo
 	double ten1, ten2, interpValue;
     //find raw value on index array
     double ellIndex = ell*theConst.n_ell/theConst.ellMax;
-	ell1 = (int)(ellIndex)-1;
+	ell1 = (int)(ellIndex);
 	ell2 = ell1+1;
     //retrieve the array value for two indexes
 	ten1 = __powf(10,interpMat[ell1]);
@@ -110,7 +110,6 @@ __global__ void integrate2(double* rebinCool, double* tempArr, double* metalArr,
     int i=blockDim.x * blockIdx.x + threadIdx.x; //threadIdx.x is the channel/energy-bin
     int j= blockIdx.x;   
 	int x, y;
-    //TODO 
 	//TODO change to put in center not corner
     x = j/theConst.nPixX-(theConst.nPixX/2);
 	y = j%theConst.nPixY-(theConst.nPixY/2);
@@ -184,6 +183,22 @@ __global__ void integrate2(double* rebinCool, double* tempArr, double* metalArr,
 	}
     
     if (debugging) {
+        if (i==2080512) {
+            integral[2080512]=xMpc;
+            integral[2080513]=energyBin;
+            integral[2080514]=ell1;
+            integral[2080515]=Z1;
+            integral[2080516]=linearInterpEll(tempArr, ell, theConst);
+            integral[2080517]=tFunct;
+            integral[2080518]=linearInterpEll(emmArr, ell, theConst);
+            integral[2080519] = rebinA;
+            integral[2080520] = n;
+            integral[2080521] = last;
+            integral[2080522] = j;
+            integral[2080523] = a;
+            integral[2080524] = b;
+            integral[2080525] = T1;
+        }else{
         integral[0]=xMpc;
         integral[1]=energyBin;
         integral[2]=ell1;
@@ -198,10 +213,13 @@ __global__ void integrate2(double* rebinCool, double* tempArr, double* metalArr,
         integral[11] = a;
         integral[12] = b;
         integral[13] = T1;
+        }
+
     }else {
         ////place integrations into the 1D array by thread number
+        //if outside the grid then make minescule 
         if (ell>theConst.ellMax || integral[i] == 1.0) {
-            integral[i] = 1.0;
+            integral[i] = 1.0E-10;
         }else{
             integral[i] = last;
         }

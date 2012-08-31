@@ -110,7 +110,7 @@ void constInit(constants &theConst, jaco_state ja){
 	theConst.binCenterSize = ja.nlastbin;//256;
     theConst.theta = ja.theta;
     theConst.phi = ja.phi;
-    theConst.epsilon = ja.epsilon;
+    theConst.psi = ja.psi;
     theConst.a_ell = ja.a_ell;
     theConst.b_ell = ja.b_ell;
     theConst.n_ell = ja.n_ell;
@@ -180,7 +180,7 @@ double*** runSimulation(jaco_state ja){
     //    printf("tempGrid[%d] = %f\n", theConst.tGridSize-1, tempGrid_h[theConst.tGridSize-1]);
     //    printf("metalGrid[%d] = %f\n", theConst.mGridSize-1, metalGrid_h[theConst.mGridSize -1]);
     rotMat_h = (double*) calloc(9,sizeof(double));
-    rotMat_h = rotMatInit(theConst.theta, theConst.phi, theConst.epsilon);
+    rotMat_h = rotMatInit(theConst.theta, theConst.phi, theConst.psi);
     size_t sizeRebin = theConst.tGridSize*theConst.mGridSize*theConst.binCenterSize*sizeof(double);
     eLoadTime = clock();
     
@@ -266,7 +266,11 @@ double*** runSimulation(jaco_state ja){
 //            cudaMemcpy(integral_h, integral_d, sizeInt, cudaMemcpyDeviceToHost);
             for (int i=0; i<14; i++) {
                 printf("integral[%d] = %f\n", i, integral_h[i]);
+                printf("integral[%d] = %f\n", i+2080512, integral_h[i+2080512]);
             }
+//            for (int i=2080512; i<2080526; i++) {
+//                printf("integral[%d] = %f\n", i, integral_h[i]);
+//            }
         }
     }
     
@@ -327,7 +331,7 @@ double **multiSpec(double ***totalSpecta,int inputRegions[][4], int numSpectra, 
 }
 
 int main(){
-    double degVal=45;
+    double degVal=90;
     jaco_state ja;
     ja.nlastbin = 256;
     ja.rshock = 2.0;
@@ -335,11 +339,11 @@ int main(){
     ja.pixscale = 10;
     ja.nx = 128;
     ja.ny = 128;
-    ja.theta = degVal*PI/180;
     ja.phi = 0;//degVal*PI/180;
-    ja.epsilon = degVal*PI/180;
-    ja.a_ell = 6.0;
-    ja.b_ell = 3.0;
+    ja.theta = degVal*PI/180;
+    ja.psi = degVal*PI/180;
+    ja.a_ell = 10.0;
+    ja.b_ell = 1.0;
     ja.n_ell = ja.nx; //or 256*256*256?
     ja.ell_max = ja.rshock + 0.1;
     
@@ -380,9 +384,10 @@ int main(){
 //    };
     //example: to get spectra for x=10, y=15 loop through i=0->i=nlastbin for totalSpectra[10][15][i]
 //    double ***totalSpectra = runSimulation(ja); //spectra for all the regions
-    char* filePrefix = "/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/";
+//    char* filePrefix = "/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/";
     for(int i=10;i<=180;i+=10){
-        ja.epsilon = i*PI/180;
+        ja.psi = i*PI/180;
+        double ***totalSpectra = runSimulation(ja);
         char filePrefix[265] = "/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/";
         ostringstream convert; 
         convert << i;       
@@ -390,11 +395,12 @@ int main(){
         strcpy(inputName,convert.str().c_str());
         strcat(filePrefix,inputName);
         strcat(filePrefix,"epsilon.txt");
+       
         printf("printing to %s.\n",filePrefix);
-        double ***totalSpectra = runSimulation(ja);
         plotImage(totalSpectra, energyArr_h, theConst, filePrefix);
     }
     //the expected output of my program as a double** where the first component is the index of the desired region and the second is the array of the spectra
+    /*
     double ***totalSpectra = runSimulation(ja);
     double **collectedResults = multiSpec(totalSpectra, inputRegions, numSpectra, ja.nlastbin);
     
@@ -405,7 +411,7 @@ int main(){
 //        printf("area2[%d] = %f  ",i, collectedResults[1][i]);
 //        printf("area3[%d] = %f  ",i, collectedResults[2][i]);
     }
-    
+    */
     Cleanup();
 	return 0;
 }
