@@ -19,7 +19,7 @@
 #include <fcntl.h>
 #include "cooling_functions.cpp"
 #include "Structs.h"
-#include "cuda_data_structs.cu"
+//#include "cuda_data_structs.cu"
 #include "cudaMethods.cu"
 #include "jaco.h"
 
@@ -203,8 +203,6 @@ double*** runSimulation(jaco_state ja){
 	cudaMemcpy(metalGrid_d, metalGrid_h, sizeMGrid, cudaMemcpyHostToDevice);
     cudaMalloc((void**)&rotMat_d, 9*sizeof(double));
 	cudaMemcpy(rotMat_d, rotMat_h, 9*sizeof(double), cudaMemcpyHostToDevice);
-//    cudaMalloc((void**)&ellArr_d, theConst.n_ell*sizeof(double));
-//	cudaMemcpy(ellArr_d, ellArr_h, theConst.n_ell*sizeof(double), cudaMemcpyHostToDevice);
     eGPUTime = clock();
     
     ///////////////test to see if cuda node is functioning
@@ -230,7 +228,7 @@ double*** runSimulation(jaco_state ja){
     sIntTime = clock();
     double*** integralMatrix;
     if (cudaWorking) {
-        integrate2<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, rotMat_d, theConst, debugging);
+        integrate<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, rotMat_d, theConst, debugging);
         printf("Transferring integration results back to CPU\n \n");
         cudaMemcpy(integral_h, integral_d, sizeInt, cudaMemcpyDeviceToHost);
         eIntTime = clock();
@@ -243,11 +241,7 @@ double*** runSimulation(jaco_state ja){
         if(printSpect){
             printSpectra(integralMatrix, energyArr_h, theConst);
         }
-        bool sumSpect = false;
-        if(sumSpect){
-//            plotImage(integralMatrix, energyArr_h, theConst);
-//            sumSpectra(integralMatrix, energyArr_h, theConst);
-        }
+
         eTime = clock();
         bool printClocking = false;
         if (printClocking) {
@@ -261,45 +255,22 @@ double*** runSimulation(jaco_state ja){
         }
         //////////////debugging integral function cuda call
         if(debugging){
-//            integrate<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, theConst, debugging);
-//            
-//            cudaMemcpy(integral_h, integral_d, sizeInt, cudaMemcpyDeviceToHost);
             for (int i=0; i<14; i++) {
                 printf("integral[%d] = %f\n", i, integral_h[i]);
                 printf("integral[%d] = %f\n", i+2080512, integral_h[i+2080512]);
             }
-//            for (int i=2080512; i<2080526; i++) {
-//                printf("integral[%d] = %f\n", i, integral_h[i]);
-//            }
         }
-    }
-    
-    ////////////testing new functions
-    bool testing = false;
-    if(testing){
-//        for (int i=0; i<5; i++) {
-//            printf("TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
-//            tempArr_h[i*theConst.ny*theConst.nz + i*theConst.nz + i] = 0.0;
-//            printf("0000--TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
-//            
-//        }
-//        tempInit<<<theConst.nx*theConst.ny, theConst.nz>>>(function2, tempArr_d, theConst);
-//        cudaMemcpy(tempArr_h, tempArr_d, sizeT, cudaMemcpyDeviceToHost);
-//        for (int i=0; i<5; i++) {
-//            printf("TempArr[%d][%d][%d] = %f\n", i,i,i,tenRetrieveH(tempArr_h, theConst.nx, theConst.ny, theConst.nz, i, i, i));
-//        }
         bool blocking = false;
-        
         //test for blocking
         if (blocking) {
             for (int i=1; i<2; i++) {
                 sleep(2);
                 printf("integration #%d\n", i);
-                integrate<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, theConst, debugging);
+                integrate<<<theConst.nPixX*theConst.nPixY, theConst.binCenterSize>>>(rebinArr_d, tempArr_d, metalArr_d, emmArr_d, integral_d, tempGrid_d, metalGrid_d, rotMat_d, theConst, debugging);
             }
             cudaMemcpy(integral_h, integral_d, sizeInt, cudaMemcpyDeviceToHost);
         }
-    }    
+    }     
     return integralMatrix;
 	
 }
@@ -331,7 +302,6 @@ double **multiSpec(double ***totalSpecta,int inputRegions[][4], int numSpectra, 
 }
 
 int main(){
-    double degVal=90;
     jaco_state ja;
     ja.nlastbin = 256;
     ja.rshock = 2.0;
@@ -339,12 +309,13 @@ int main(){
     ja.pixscale = 10;
     ja.nx = 128;
     ja.ny = 128;
+    double degVal=90;
     ja.phi = 0;//degVal*PI/180;
     ja.theta = degVal*PI/180;
     ja.psi = degVal*PI/180;
     ja.a_ell = 10.0;
     ja.b_ell = 1.0;
-    ja.n_ell = ja.nx; //or 256*256*256?
+    ja.n_ell = ja.nx; 
     ja.ell_max = ja.rshock + 0.1;
     
 	file_reader coolingFile;
@@ -354,37 +325,17 @@ int main(){
 	read_cooling_function(coolingFile);
     makeReBin(centBin, ja.nlastbin);
 	rebincoolingfunction(centBin, ja.nlastbin, coolingFile);  
-    //double float issue
+
     ja.rebinnedcooling = coolingFile.rebinnedCooling; 
     ja.tgridsize = coolingFile.tGridSize;
     ja.mgridsize = coolingFile.mGridSize;
     ja.egridsize = coolingFile.eGridSize;
     ja.tempaxis = coolingFile.tempAxis;
     ja.metalaxis = coolingFile.metalAxis;
-    ja.Tprof = tempArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.ell_max); //is nPixX correct?
+    ja.Tprof = tempArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.ell_max); 
     ja.Zprof = metalArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.ell_max);
     ja.nenhprof = emmArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.ell_max);
-    
-    //input region values as a matrix with the desired num of spectra as first component
-    //the second component is the four corners of the rectangular region
-    int numSpectra;
-    numSpectra = 3;
-    //example of input with three regions
-    int inputRegions[3][4] = 
-    {
-        {3, 3, 3, 3, }, // row 0
-        {20, 21, 20, 21, }, // row 1
-        {51, 51, 51, 51} // row 2
-    };
-//    int anArray[3][5] =
-//    {
-//        { 1, 2, 3, 4, 5, }, // row 0
-//        { 6, 7, 8, 9, 10, }, // row 1
-//        { 11, 12, 13, 14, 15 } // row 2
-//    };
-    //example: to get spectra for x=10, y=15 loop through i=0->i=nlastbin for totalSpectra[10][15][i]
-//    double ***totalSpectra = runSimulation(ja); //spectra for all the regions
-//    char* filePrefix = "/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/";
+
     for(int i=10;i<=180;i+=10){
         ja.psi = i*PI/180;
         double ***totalSpectra = runSimulation(ja);
@@ -400,16 +351,27 @@ int main(){
         plotImage(totalSpectra, energyArr_h, theConst, filePrefix);
     }
     //the expected output of my program as a double** where the first component is the index of the desired region and the second is the array of the spectra
+    //input region values as a matrix with the desired num of spectra as first component
+    //the second component is the four corners of the rectangular region
     /*
+     int numSpectra;
+     numSpectra = 3;
+     //example of input with three regions
+     int inputRegions[3][4] = 
+     {
+     {3, 3, 3, 3, }, // row 0
+     {20, 21, 20, 21, }, // row 1
+     {51, 51, 51, 51} // row 2
+     };
     double ***totalSpectra = runSimulation(ja);
     double **collectedResults = multiSpec(totalSpectra, inputRegions, numSpectra, ja.nlastbin);
     
     double *results = sumArea(3, 3, 3, 3, totalSpectra, ja.nlastbin);
-    //
+    
     for (int i=0; i<ja.nlastbin; i++) {
-//        printf("area1[%d] = %f  ",i, results[i]);
-//        printf("area2[%d] = %f  ",i, collectedResults[1][i]);
-//        printf("area3[%d] = %f  ",i, collectedResults[2][i]);
+        printf("area1[%d] = %f  ",i, results[i]);
+        printf("area2[%d] = %f  ",i, collectedResults[1][i]);
+        printf("area3[%d] = %f  ",i, collectedResults[2][i]);
     }
     */
     Cleanup();
