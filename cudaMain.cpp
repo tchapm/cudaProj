@@ -336,7 +336,7 @@ int main(){
     ja.Zprof = metalArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.ell_max);
     ja.nenhprof = emmArrInit(ja.n_ell, ja.a_ell, ja.b_ell, ja.ell_max);
 
-    for(int i=10;i<=180;i+=10){
+    for(int i=180;i<=180;i+=10){
         ja.psi = i*PI/180;
         double ***totalSpectra = runSimulation(ja);
         char filePrefix[265] = "/home/tchap/NVIDIA_GPU_COMPUTING_SDK/C/src/cud3Dsim/fluxValues/";
@@ -345,7 +345,7 @@ int main(){
         char* inputName = new char [convert.str().size()+1];
         strcpy(inputName,convert.str().c_str());
         strcat(filePrefix,inputName);
-        strcat(filePrefix,"epsilon.txt");
+        strcat(filePrefix,"psi.txt");
        
         printf("printing to %s.\n",filePrefix);
         plotImage(totalSpectra, energyArr_h, theConst, filePrefix);

@@ -157,8 +157,8 @@ double *metalArrInit(int nEll, double a_ell, double b_ell, double ellMax){
 	double *metalArr = new double[nEll];
     double *ellArr = ellArrInit(nEll, ellMax);
     double offset;
-    //may need to add dependancy on ellArr like the other two initializers
     for(int k=0; k<nEll; k++){
+        //why 0.907????
         offset = k*0.907;
         metalArr[k] = log10((nEll-offset)/nEll);
 //        printf("metalArr[%d] = %f\n", k,  powf(10,metalArr[k]));
@@ -172,7 +172,7 @@ double *emmArrInit(int nEll, double a_ell, double b_ell, double ellMax){
     double *ellArr = new double[nEll];
     ellArr = ellArrInit(nEll, ellMax);
     for(int k=0; k<nEll; k++){
-        emmArr[k] = log10(pow(rNot+0.01*ellArr[k],-3));
+        emmArr[k] = log10(pow(rNot+ellArr[k],-3));
         //        printf("emmArr[%d] = %f\n", k,  emmArr[k]);
     }
 	return emmArr;
@@ -184,7 +184,7 @@ double* tempArrInit(int nEll, double a_ell, double b_ell, double ellMax){
     double *ellArr = new double[nEll];
     ellArr = ellArrInit(nEll, ellMax);
     for(int k=0; k<nEll; k++){
-        tempArr[k]=log10(6.7*pow(rNot+0.01*ellArr[k],-1.0));
+        tempArr[k]=log10(6.7*pow(rNot+ellArr[k],-1.0));
         //        printf("tempArr[%d] = %f\n", k,  tempArr[k]);
     }
     
